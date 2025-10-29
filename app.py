@@ -102,6 +102,35 @@ def init_db():
         )
     ''')
     
+    # Verse interactions table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS verse_interactions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER DEFAULT 1,
+            verse_reference TEXT NOT NULL,
+            verse_date DATE NOT NULL,
+            favorited BOOLEAN DEFAULT 0,
+            note TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id),
+            UNIQUE(user_id, verse_date)
+        )
+    ''')
+    
+    # Favorite verses table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS favorite_verses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER DEFAULT 1,
+            reference TEXT NOT NULL,
+            text TEXT NOT NULL,
+            book TEXT NOT NULL,
+            note TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id)
+        )
+    ''')
+    
     conn.commit()
     conn.close()
 
@@ -499,6 +528,150 @@ def get_chapter_and_record(book, chapter):
         return jsonify(chapter_data)
     except Exception as e:
         return jsonify({'error': 'Failed to fetch chapter'}), 500
+
+# Missing: Verse interactions (for daily verse favorites/notes)
+@app.route('/api/verse-interactions', methods=['GET', 'POST'])
+def handle_verse_interactions():
+    """Handle verse interactions - favorites and notes"""
+    if request.method == 'GET':
+        user_id = request.args.get('user_id', 1)
+        date_filter = request.args.get('date')
+        
+        conn = get_db_connection()
+        query = 'SELECT * FROM verse_interactions WHERE user_id = ?'
+        params = [user_id]
+        
+        if date_filter:
+            query += ' AND verse_date = ?'
+            params.append(date_filter)
+            
+        interactions = conn.execute(query + ' ORDER BY created_at DESC', params).fetchall()
+        conn.close()
+        
+        return jsonify([dict(interaction) for interaction in interactions])
+    
+    elif request.method == 'POST':
+        data = request.get_json()
+        user_id = data.get('user_id', 1)
+        verse_reference = data.get('verse_reference')
+        verse_date = data.get('verse_date', date.today().isoformat())
+        favorited = data.get('favorited', False)
+        note = data.get('note', '')
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            INSERT INTO verse_interactions (user_id, verse_reference, verse_date, favorited, note)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(user_id, verse_date) 
+            DO UPDATE SET 
+                verse_reference = excluded.verse_reference,
+                favorited = excluded.favorited,
+                note = excluded.note
+        ''', (user_id, verse_reference, verse_date, favorited, note))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'message': 'Verse interaction saved successfully'})
+
+# Missing: Favorite verses management
+@app.route('/api/favorite-verses', methods=['GET', 'POST'])
+def handle_favorite_verses():
+    """Handle favorite verses"""
+    if request.method == 'GET':
+        user_id = request.args.get('user_id', 1)
+        
+        conn = get_db_connection()
+        favorites = conn.execute('''
+            SELECT * FROM favorite_verses 
+            WHERE user_id = ? 
+            ORDER BY created_at DESC
+        ''', (user_id,)).fetchall()
+        conn.close()
+        
+        return jsonify([dict(fav) for fav in favorites])
+    
+    elif request.method == 'POST':
+        data = request.get_json()
+        user_id = data.get('user_id', 1)
+        reference = data.get('reference')
+        text = data.get('text')
+        book = data.get('book')
+        note = data.get('note', '')
+        
+        if not reference or not text or not book:
+            return jsonify({'error': 'Reference, text, and book are required'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            INSERT INTO favorite_verses (user_id, reference, text, book, note)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (user_id, reference, text, book, note))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'message': 'Verse added to favorites successfully'})
+
+@app.route('/api/favorite-verses/<int:favorite_id>', methods=['DELETE'])
+def delete_favorite_verse(favorite_id):
+    """Remove a verse from favorites"""
+    conn = get_db_connection()
+    
+    # Get the favorite to update interaction table
+    favorite = conn.execute(
+        'SELECT * FROM favorite_verses WHERE id = ?', (favorite_id,)
+    ).fetchone()
+    
+    if favorite:
+        # Remove from favorites
+        conn.execute('DELETE FROM favorite_verses WHERE id = ?', (favorite_id,))
+        
+        # Update interaction if it exists
+        conn.execute('''
+            UPDATE verse_interactions 
+            SET favorited = 0 
+            WHERE user_id = ? AND verse_reference = ?
+        ''', (favorite['user_id'], favorite['reference']))
+        
+        conn.commit()
+    
+    conn.close()
+    
+    return jsonify({'message': 'Favorite verse removed successfully'})
+
+# Missing: Daily verse of the day
+@app.route('/api/verse-of-day', methods=['GET'])
+def get_daily_verse():
+    """Get the verse of the day"""
+    today_str = date.today().isoformat()
+    user_id = request.args.get('user_id', 1)
+    
+    # Check if user has interacted with today's verse
+    conn = get_db_connection()
+    interaction = conn.execute('''
+        SELECT * FROM verse_interactions 
+        WHERE user_id = ? AND verse_date = ?
+    ''', (user_id, today_str)).fetchone()
+    conn.close()
+    
+    # You'll need to implement your verse-of-day logic here
+    # This is a placeholder response
+    verse_data = {
+        'book': 'John',
+        'reference': 'John 3:16',
+        'text': 'For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life.',
+        'translation': 'NIV',
+        'date': today_str,
+        'favorited': bool(interaction and interaction['favorited']) if interaction else False,
+        'user_note': interaction['note'] if interaction else None
+    }
+    
+    return jsonify(verse_data)
 
 if __name__ == '__main__':
     init_db()
