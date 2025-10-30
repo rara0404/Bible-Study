@@ -6,7 +6,7 @@ import { Badge } from "./ui/badge";
 import { Textarea } from "./ui/textarea";
 import { Alert, AlertDescription } from "./ui/alert";
 import { Skeleton } from "./ui/skeleton";
-import { getChapter, getBookId, BibleApiError, type BibleVerse as ApiBibleVerse } from "../services/bibleApi";
+import { getChapter, getBookId, BibleApiError } from '../services/bibleApi';
 import { BookOpen, StickyNote, ChevronLeft, ChevronRight, Type, Minus, Plus, AlertCircle, Heart } from "lucide-react";
 import "./BibleReader.css";
 
@@ -39,6 +39,14 @@ interface FavoriteVerse {
   text: string;
   translation: string;
   dateAdded: string;
+}
+
+// API shape returned by the bible service
+interface ApiBibleVerse {
+  book_name: string;
+  chapter: number;
+  verse: number;
+  text: string;
 }
 
 // Helper function to clean verse text and remove unwanted formatting
@@ -80,34 +88,42 @@ export function BibleReader({ book, chapter, translation, onNavigate }: BibleRea
     const fetchChapterData = async () => {
       setLoading(true);
       setError(null);
-      setSelectedVerse(null);
-      setNoteText('');
-
+      
       try {
+        // Convert book name to book ID
         const bookId = getBookId(book);
         if (!bookId) {
           throw new Error(`Unknown book: ${book}`);
         }
 
-        const response = await getChapter(bookId, chapter, translation);
+        console.log(`Fetching ${book} (${bookId}) chapter ${chapter}`);
         
-        // Convert API response to our local format
-        const convertedVerses: BibleVerse[] = response.verses.map((apiVerse: ApiBibleVerse) => ({
-          book: apiVerse.book_name,
-          chapter: apiVerse.chapter,
-          verse: apiVerse.verse,
-          text: cleanVerseText(apiVerse.text.trim()) // Clean and remove unwanted formatting
-        }));
-
-        setVerses(convertedVerses);
-      } catch (err) {
-        if (err instanceof BibleApiError) {
-          setError(err.message);
+        const response = await getChapter(bookId, chapter, translation);
+        console.log('API Response:', response);
+        
+        if (response.verses && response.verses.length > 0) {
+          const adaptedVerses: BibleVerse[] = response.verses.map(verse => ({
+            book: verse.book_name,
+            chapter: verse.chapter,
+            verse: verse.verse,
+            text: cleanVerseText(verse.text)
+          }));
+          
+          setVerses(adaptedVerses);
         } else {
-          setError('Failed to load chapter. Please try again.');
+          setError('No verses found for this chapter.');
         }
+      } catch (err) {
         console.error('Error fetching chapter:', err);
-        setVerses([]);
+        if (err instanceof BibleApiError) {
+          if (err.status === 404) {
+            setError(`Chapter ${chapter} not found in ${book}. This book may have fewer chapters.`);
+          } else {
+            setError(`Failed to load chapter: ${err.message}`);
+          }
+        } else {
+          setError(`Failed to load chapter: ${err instanceof Error ? err.message : 'Unknown error'}`);
+        }
       } finally {
         setLoading(false);
       }
