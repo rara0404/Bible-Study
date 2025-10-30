@@ -108,7 +108,7 @@ export function StreakTracker() {
           </Button>
         ) : (
           <div className="w-full p-3 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-lg text-center">
-            ✅ Great job reading today!
+            Great job reading today!
           </div>
         )}
       </CardContent>
