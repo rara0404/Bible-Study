@@ -94,10 +94,10 @@ export function VerseOfTheDay({ translation = "web" }: VerseOfTheDayProps) {
       const response = await getVerse(dailyVerseReference, translation);
       console.log('API Response:', response);
       
-      if (response.verses && response.verses.length > 0) {
+        if (response.verses && response.verses.length > 0) {
         const apiVerse = response.verses[0];
         const convertedVerse: BibleVerse = {
-          book: response.book_name || apiVerse.book_name || "Unknown",
+          book: (response as any).book_name || (apiVerse as any).book_name || (apiVerse as any).book || "Unknown",
           chapter: apiVerse.chapter,
           verse: apiVerse.verse,
           text: apiVerse.text.trim()
@@ -235,13 +235,18 @@ export function VerseOfTheDay({ translation = "web" }: VerseOfTheDayProps) {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-8 w-8 p-0 text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-all duration-200"
+                        className={`h-8 w-8 p-0 transition-all duration-200 ${
+                          liked 
+                            ? 'text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50' 
+                            : 'text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/50'
+                        }`}
                         onClick={toggleFavorite}
                       >
                         <Heart 
                           className={`w-4 h-4 transition-all duration-200 ${
-                            liked ? 'fill-red-500 text-red-500' : ''
-                          }`} 
+                            liked ? 'fill-current text-red-500 scale-110' : 'hover:scale-105'
+                          }`}
+                          fill={liked ? 'currentColor' : 'none'}
                         />
                       </Button>
                     </TooltipTrigger>
