@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { VerseOfTheDay } from "./components/VerseOfTheDay";
 import { StreakTracker } from "./components/StreakTracker";
 import { BookSelector } from "./components/BookSelector";
@@ -11,6 +11,7 @@ import { Button } from "./components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 import { ImageWithFallback } from "./components/figma/ImageWithFallback";
 import { Book, Home, BookOpen, Calendar, Flame, Moon, Sun, Heart, Menu } from "lucide-react";
+import { getLastReading } from "./services/readingProgress";
 
 type ViewMode = 'home' | 'books' | 'read' | 'favorites';
 
@@ -25,8 +26,28 @@ export default function App() {
   const [viewMode, setViewMode] = useState<ViewMode>('home');
   const [currentBook, setCurrentBook] = useState<string>('');
   const [currentChapter, setCurrentChapter] = useState<number>(1);
-  const { selectedTranslation, handleTranslationChange, translationInfo } = useTranslationSelection();
-  const [isNavOpen, setIsNavOpen] = useState(false);
+  // If you use the TranslationSelector hook, keep using it:
+  // const { selectedTranslation, handleTranslationChange } = useTranslationSelection();
+  const [selectedTranslation, setSelectedTranslation] = useState<string>('web');
+  const [isNavOpen, setIsNavOpen] = useState<boolean>(false);
+
+  // If you have auth, set this to the signed-in user's id
+  const userId: string | undefined = undefined;
+
+  const resumeReading = async () => {
+    const last = await getLastReading(userId);
+    if (last?.book && last?.chapter) {
+      setCurrentBook(last.book);
+      setCurrentChapter(last.chapter);
+      if (last.translation) setSelectedTranslation(last.translation);
+      setViewMode('read');
+      // Optionally, scroll to verse on render
+      // setTimeout(() => document.querySelector(`[data-verse="${last.verse}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 0);
+    } else {
+      // fallback: open book selector
+      setViewMode('books');
+    }
+  };
 
   const handleBookSelect = (book: string, chapter: number) => {
     setCurrentBook(book);
@@ -40,6 +61,13 @@ export default function App() {
     setViewMode('read');
 
   };
+
+  function formatAddedDate(value?: string) {
+    if (!value) return 'Just now';
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return 'Just now';
+    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  }
 
   return (
     <div className={`min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900'}`}>
@@ -67,7 +95,7 @@ export default function App() {
               <div className="hidden xl:flex">
                 <TranslationSelector
                   selectedTranslation={selectedTranslation}
-                  onTranslationChange={handleTranslationChange}
+                  onTranslationChange={setSelectedTranslation}
                 />
               </div>
 
@@ -101,7 +129,11 @@ export default function App() {
                             <button
                               className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-800 hover:bg-gray-100"
                               onClick={() => {
-                                setViewMode(item.id as ViewMode);
+                                if (item.id === 'read') {
+                                  resumeReading();
+                                } else {
+                                  setViewMode(item.id as ViewMode);
+                                }
                                 setIsNavOpen(false);
                               }}
                             >
@@ -222,7 +254,7 @@ export default function App() {
               <div className="relative z-10">
                 <TranslationSelector 
                   selectedTranslation={selectedTranslation}
-                  onTranslationChange={handleTranslationChange}
+                  onTranslationChange={setSelectedTranslation}
                 />
               </div>
             </div>

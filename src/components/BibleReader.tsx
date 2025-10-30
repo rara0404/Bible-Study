@@ -9,6 +9,7 @@ import { Skeleton } from "./ui/skeleton";
 import { getChapter, getBookId, BibleApiError } from '../services/bibleApi';
 import { BookOpen, StickyNote, ChevronLeft, ChevronRight, Type, Minus, Plus, AlertCircle, Heart } from "lucide-react";
 import "./BibleReader.css";
+import { saveLastReading } from "../services/readingProgress";
 
 // Adapter interface to maintain compatibility
 interface BibleVerse {
@@ -41,7 +42,6 @@ interface FavoriteVerse {
   dateAdded: string;
 }
 
-// API shape returned by the bible service
 interface ApiBibleVerse {
   book_name: string;
   chapter: number;
@@ -49,12 +49,11 @@ interface ApiBibleVerse {
   text: string;
 }
 
-// Helper function to clean verse text and remove unwanted formatting
 function cleanVerseText(text: string): string {
   return text
-    .replace(/\bunrefined\b/gi, '') // Remove 'unrefined' text
-    .replace(/\s+/g, ' ') // Replace multiple spaces with single space
-    .trim(); // Remove leading/trailing whitespace
+    .replace(/\bunrefined\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 export function BibleReader({ book, chapter, translation, onNavigate }: BibleReaderProps) {
@@ -66,6 +65,9 @@ export function BibleReader({ book, chapter, translation, onNavigate }: BibleRea
   const [fontSize, setFontSize] = useState(16);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // If you have auth, pass the current user id here
+  const userId: string | undefined = undefined;
 
   useEffect(() => {
     const savedNotes = localStorage.getItem('bibleNotes');
@@ -88,7 +90,6 @@ export function BibleReader({ book, chapter, translation, onNavigate }: BibleRea
     const fetchChapterData = async () => {
       setLoading(true);
       setError(null);
-      
       try {
         // Convert book name to book ID
         const bookId = getBookId(book);
@@ -108,8 +109,13 @@ export function BibleReader({ book, chapter, translation, onNavigate }: BibleRea
             verse: verse.verse,
             text: cleanVerseText(verse.text)
           }));
-          
           setVerses(adaptedVerses);
+
+          // Save progress at chapter level
+          await saveLastReading(
+            { book, chapter, translation: translation || 'web' },
+            userId
+          );
         } else {
           setError('No verses found for this chapter.');
         }
@@ -180,8 +186,8 @@ export function BibleReader({ book, chapter, translation, onNavigate }: BibleRea
     } else {
       // Add to favorites
       const newFavorite: FavoriteVerse = {
-        book: book, // Use the book prop instead of verse.book
-        chapter: chapter, // Use the chapter prop instead of verse.chapter
+        book: book, 
+        chapter: chapter,
         verse: verse.verse,
         text: verse.text,
         translation: translation || 'web',
@@ -189,7 +195,6 @@ export function BibleReader({ book, chapter, translation, onNavigate }: BibleRea
       };
       updatedFavorites = [...favorites, newFavorite];
     }
-    
     setFavorites(updatedFavorites);
     localStorage.setItem('bibleFavorites', JSON.stringify(updatedFavorites));
   };
@@ -212,7 +217,7 @@ export function BibleReader({ book, chapter, translation, onNavigate }: BibleRea
     localStorage.setItem('bibleFontSize', newSize.toString());
   };
 
-  const handleVerseClick = (verse: number) => {
+  const handleVerseClick = async (verse: number) => {
     if (selectedVerse === verse) {
       setSelectedVerse(null);
       setNoteText('');
@@ -221,6 +226,11 @@ export function BibleReader({ book, chapter, translation, onNavigate }: BibleRea
       const existingNote = getVerseNote(verse);
       setNoteText(existingNote?.note || '');
     }
+    // Save with the last tapped verse
+    await saveLastReading(
+      { book, chapter, translation: translation || 'web', verse },
+      userId
+    );
   };
 
   return (
