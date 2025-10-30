@@ -321,7 +321,6 @@ export function BibleReader({ book, chapter, translation, onNavigate }: BibleRea
           ) : !error && verses.length > 0 ? (
             <div 
               className={`space-y-4 bible-font-${fontSize}`}
-              style={{ fontSize: `${fontSize}px` }}
             >
               {verses.map((verse: BibleVerse) => {
                 const hasNote = getVerseNote(verse.verse);

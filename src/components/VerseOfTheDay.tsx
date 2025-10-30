@@ -140,7 +140,6 @@ export function VerseOfTheDay({ translation = "web" }: VerseOfTheDayProps) {
     fetchDailyVerse();
   }, [translation]);
 
-  // Update liked state when favorites change
   useEffect(() => {
     if (verse) {
       const isAlreadyFavorited = favorites.some(fav => 
