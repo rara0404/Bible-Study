@@ -254,7 +254,6 @@
   }
 
   img, svg, video, canvas, audio, iframe, embed, object {
-    vertical-align: middle;
     display: block;
   }
 
@@ -1671,7 +1670,7 @@
   }
 
   .dark\:bg-gray-800\/80:is(.dark *) {
-    background-color: color-mix(in srgb, oklch(.278 .033 256.848) 80%, transparent);
+    background-color: rgba(44, 47, 51, 0.8);
   }
 
   @supports (color: color-mix(in lab, red, red)) {

@@ -10,16 +10,23 @@ import { Card, CardContent } from "./components/ui/card";
 import { Button } from "./components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 import { ImageWithFallback } from "./components/figma/ImageWithFallback";
-import { Book, Home, BookOpen, Calendar, Flame, Moon, Sun, Heart } from "lucide-react";
+import { Book, Home, BookOpen, Calendar, Flame, Moon, Sun, Heart, Menu } from "lucide-react";
 
 type ViewMode = 'home' | 'books' | 'read' | 'favorites';
+
+const navigationItems = [
+  { id: 'home', label: 'Home', icon: Home },
+  { id: 'books', label: 'Bible', icon: Book },
+  { id: 'read', label: 'Read', icon: BookOpen },
+  { id: 'favorites', label: 'Favorites', icon: Heart },
+] as const;
 
 export default function App() {
   const [viewMode, setViewMode] = useState<ViewMode>('home');
   const [currentBook, setCurrentBook] = useState<string>('');
   const [currentChapter, setCurrentChapter] = useState<number>(1);
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const { selectedTranslation, handleTranslationChange, translationInfo } = useTranslationSelection();
+  const [isNavOpen, setIsNavOpen] = useState(false);
 
   const handleBookSelect = (book: string, chapter: number) => {
     setCurrentBook(book);
@@ -31,24 +38,11 @@ export default function App() {
     setCurrentBook(book);
     setCurrentChapter(chapter);
     setViewMode('read');
-    // Future: Could add verse highlighting/scrolling here
-  };
 
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-    document.documentElement.classList.toggle('dark');
   };
-
-  // Navigation items
-  const navigationItems = [
-    { id: 'home', label: 'Home', icon: Home },
-    { id: 'books', label: 'Bible', icon: Book },
-    { id: 'read', label: 'Read', icon: BookOpen },
-    { id: 'favorites', label: 'Favorites', icon: Heart },
-  ];
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 ${isDarkMode ? 'dark' : ''}`}>
+    <div className={`min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900'}`}>
       {/* Header */}
       <header className="sticky top-0 z-50 backdrop-blur-md bg-white/80 dark:bg-gray-900/80 border-b border-gray-200/50 dark:border-gray-700/50">
         <div className="max-w-6xl mx-auto px-4 py-4">
@@ -66,54 +60,67 @@ export default function App() {
                 </p>
               </div>
             </div>
-            
+
+            {/* Right side: translation (optional) + hamburger */}
             <div className="flex items-center gap-3">
-              {/* Translation Selector in Header - Desktop Only */}
+              {/* Keep or remove this translation selector as you prefer */}
               <div className="hidden xl:flex">
-                <TranslationSelector 
+                <TranslationSelector
                   selectedTranslation={selectedTranslation}
                   onTranslationChange={handleTranslationChange}
                 />
               </div>
-              
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={toggleDarkMode}
-                className="w-10 h-10 p-0"
-              >
-                {isDarkMode ? (
-                  <Sun className="w-5 h-5" />
-                ) : (
-                  <Moon className="w-5 h-5" />
+
+              {/* Hamburger menu */}
+              <div className="relative">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-10 w-10"
+                  onClick={() => setIsNavOpen(v => !v)}
+                  aria-label="Open menu"
+                >
+                  <Menu className="w-5 h-5" />
+                </Button>
+
+                {isNavOpen && (
+                  <>
+                    {/* click-away overlay */}
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setIsNavOpen(false)}
+                    />
+                    {/* dropdown */}
+                    <div className="absolute right-0 mt-2 z-50 w-56 rounded-lg border bg-white shadow-xl">
+                      <div className="px-3 py-2 text-xs font-medium text-gray-500 tracking-wide uppercase">
+                        Menu
+                      </div>
+                      <ul className="py-1">
+                        {navigationItems.map(item => (
+                          <li key={item.id}>
+                            <button
+                              className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-800 hover:bg-gray-100"
+                              onClick={() => {
+                                setViewMode(item.id as ViewMode);
+                                setIsNavOpen(false);
+                              }}
+                            >
+                              <item.icon className="w-4 h-4 text-gray-500" />
+                              {item.label}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </>
                 )}
-              </Button>
+              </div>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Horizontal Navigation */}
-      <div className="sticky top-[73px] z-40 backdrop-blur-md bg-white/80 dark:bg-gray-900/80 border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-6xl mx-auto px-4 py-3">
-          <Tabs value={viewMode} onValueChange={(value: string) => setViewMode(value as ViewMode)}>
-            <TabsList className="inline-flex h-11 items-center justify-center rounded-lg bg-gray-100/50 dark:bg-gray-800/50 backdrop-blur-sm p-1 text-muted-foreground">
-              {navigationItems.map(item => (
-                <TabsTrigger 
-                  key={item.id} 
-                  value={item.id} 
-                  className="relative inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium ring-offset-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-gray-200/50 dark:hover:bg-gray-700/50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm gap-2 group"
-                >
-                  <item.icon className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" />
-                  <span>{item.label}</span>
-                  {/* Hover/Active Indicator */}
-                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-blue-500 dark:bg-blue-400 rounded-full transition-all duration-200 group-hover:w-8 data-[state=active]:w-12 data-[state=active]:bg-blue-600 dark:data-[state=active]:bg-blue-300" />
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-        </div>
-      </div>
+      {/* Navigation moved into header hamburger menu */}
 
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-4 py-8">
@@ -193,28 +200,6 @@ export default function App() {
               {/* Right Column */}
               <div className="space-y-6">
                 <StreakTracker />
-                
-                {/* Reading Progress */}
-                <Card>
-                  <CardContent className="p-6">
-                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                      <Calendar className="w-5 h-5" />
-                      This Week's Goal
-                    </h3>
-                    <div className="space-y-3">
-                      <div className="flex justify-between text-sm">
-                        <span>Progress</span>
-                        <span>3/7 days</span>
-                      </div>
-                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                        <div className="bg-blue-500 h-2 rounded-full w-[43%]"></div>
-                      </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Keep it up! You're doing great.
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
               </div>
             </div>
           </div>
