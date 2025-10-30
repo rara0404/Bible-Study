@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from "./ui/alert";
 import { Skeleton } from "./ui/skeleton";
 import { getChapter, getBookId, BibleApiError, type BibleVerse as ApiBibleVerse } from "../services/bibleApi";
 import { BookOpen, StickyNote, ChevronLeft, ChevronRight, Type, Minus, Plus, AlertCircle, Heart } from "lucide-react";
+import "./BibleReader.css";
 
 // Adapter interface to maintain compatibility
 interface BibleVerse {
@@ -309,87 +310,88 @@ export function BibleReader({ book, chapter, translation, onNavigate }: BibleRea
           )}
 
           {loading ? (
-            <div className="space-y-4">
-              {Array.from({ length: 5 }).map((_, index) => (
-                <div key={index} className="flex gap-4">
-                  <Skeleton className="h-6 w-8 rounded" />
-                  <Skeleton className="h-16 flex-1" />
-                </div>
-              ))}
-            </div>
-          ) : verses.length > 0 ? (
-            <div 
-              className="space-y-4" 
-              style={{ fontSize: `${fontSize}px` }}
-            >
-              {verses.map((verse: BibleVerse) => {
-                const hasNote = getVerseNote(verse.verse);
-                const isSelected = selectedVerse === verse.verse;
-                const isFav = isFavorite(verse);
-                
-                return (
-                  <div key={verse.verse} className="space-y-2">
-                    <div
-                      className={`p-4 rounded-lg cursor-pointer transition-colors ${
-                        isSelected 
-                          ? 'bg-blue-50 dark:bg-blue-950 border-2 border-blue-200 dark:border-blue-800' 
-                          : hasNote
-                          ? 'bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 hover:bg-yellow-100 dark:hover:bg-yellow-900'
-                          : 'hover:bg-gray-50 dark:hover:bg-gray-800'
-                      }`}
-                      onClick={() => handleVerseClick(verse.verse)}
-                    >
-                      <div className="flex gap-4">
-                        <Badge variant="outline" className="flex-shrink-0 h-6">
-                          {verse.verse}
-                        </Badge>
-                        <p className="leading-relaxed flex-1">
-                          {verse.text}
-                        </p>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleFavorite(verse);
-                            }}
-                            className={`p-1 rounded-full transition-colors hover:bg-gray-200 dark:hover:bg-gray-700 ${
-                              isFav ? 'text-red-500 hover:text-red-600' : 'text-gray-400 hover:text-red-400'
-                            }`}
-                            title={isFav ? 'Remove from favorites' : 'Add to favorites'}
-                          >
-                            <Heart className={`w-4 h-4 ${isFav ? 'fill-current' : ''}`} />
-                          </button>
-                          {hasNote && (
-                            <StickyNote className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {hasNote && !isSelected && (
-                      <div className="ml-12 p-3 bg-yellow-100 dark:bg-yellow-900 rounded-lg">
-                        <div className="flex items-start justify-between gap-2">
-                          <p className="text-sm text-yellow-800 dark:text-yellow-200 italic">
-                            "{hasNote.note}"
-                          </p>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e: any) => {
-                              e.stopPropagation();
-                              deleteNote(verse.verse);
-                            }}
-                            className="text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-200 h-6 w-6 p-0"
-                          >
-                            ×
-                          </Button>
-                        </div>
-                      </div>
-                    )}
+            <>
+              <div className="space-y-4">
+                {Array.from({ length: 5 }).map((_, index) => (
+                  <div key={index} className="flex gap-4">
+                    <Skeleton className="h-6 w-8 rounded" />
+                    <Skeleton className="h-16 flex-1" />
                   </div>
-                );
-              })}
-            </div>
+                ))}
+              </div>
+
+              <div 
+                className={`space-y-4 bible-font-${fontSize}`}
+              >
+                {verses.map((verse: BibleVerse) => {
+                  const hasNote = getVerseNote(verse.verse);
+                  const isSelected = selectedVerse === verse.verse;
+                  const isFav = isFavorite(verse);
+                  
+                  return (
+                    <div key={verse.verse} className="space-y-2">
+                      <div
+                        className={`p-4 rounded-lg cursor-pointer transition-colors ${
+                          isSelected 
+                            ? 'bg-blue-50 dark:bg-blue-950 border-2 border-blue-200 dark:border-blue-800' 
+                            : hasNote
+                            ? 'bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 hover:bg-yellow-100 dark:hover:bg-yellow-900'
+                            : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                        }`}
+                        onClick={() => handleVerseClick(verse.verse)}
+                      >
+                        <div className="flex gap-4">
+                          <Badge variant="outline" className="flex-shrink-0 h-6">
+                            {verse.verse}
+                          </Badge>
+                          <p className="leading-relaxed flex-1">
+                            {verse.text}
+                          </p>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleFavorite(verse);
+                              }}
+                              className={`p-1 rounded-full transition-colors hover:bg-gray-200 dark:hover:bg-gray-700 ${
+                                isFav ? 'text-red-500 hover:text-red-600' : 'text-gray-400 hover:text-red-400'
+                              }`}
+                              title={isFav ? 'Remove from favorites' : 'Add to favorites'}
+                            >
+                              <Heart className={`w-4 h-4 ${isFav ? 'fill-current' : ''}`} />
+                            </button>
+                            {hasNote && (
+                              <StickyNote className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {hasNote && !isSelected && (
+                        <div className="ml-12 p-3 bg-yellow-100 dark:bg-yellow-900 rounded-lg">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="text-sm text-yellow-800 dark:text-yellow-200 italic">
+                              "{hasNote.note}"
+                            </p>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e: any) => {
+                                e.stopPropagation();
+                                deleteNote(verse.verse);
+                              }}
+                              className="text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-200 h-6 w-6 p-0"
+                            >
+                              ×
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           ) : !error && (
             <div className="text-center py-8 text-gray-500">
               No verses found for this chapter.
