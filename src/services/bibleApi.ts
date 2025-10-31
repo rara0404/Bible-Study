@@ -398,6 +398,22 @@ export const BibleTranslations: Record<string, TranslationInfo> = {
   }
 } as const;
 
+// Mark translations your verse API doesn't support
+export const UNSUPPORTED_TRANSLATION_IDS = new Set<string>([
+  "rst",              // Russian Synodal
+  "russian-synodal",
+  "ru-rst",
+]);
+
+export function hasApiResource(translationId: string): boolean {
+  const t = Object.values(BibleTranslations).find(x => x.identifier === translationId);
+  if (!t) return false;
+  // Block Russian Synodal
+  const isRussianSynodal =
+    /russian/i.test(t.language ?? "") && /synodal/i.test(t.name ?? "");
+  return !isRussianSynodal;
+}
+
 // Helper to get all translations as an array
 export const getAllTranslations = (): TranslationInfo[] => {
   return Object.values(BibleTranslations);

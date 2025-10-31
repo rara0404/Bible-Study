@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef } from "react";
-import { Languages, Check } from "lucide-react";
+import { Languages, ChevronDown } from "lucide-react";
 import {
   Select,
   SelectTrigger,
@@ -10,7 +10,7 @@ import {
   SelectLabel,
 } from "../components/ui/select";
 import "./TranslationSelector.css";
-import { BibleTranslations, getAllTranslations, getTranslationsByLanguage, getDefaultTranslation } from "../services/bibleApi";
+import { BibleTranslations, getAllTranslations, getDefaultTranslation, hasApiResource } from "../services/bibleApi";
 
 interface TranslationSelectorProps {
   selectedTranslation?: string;
@@ -23,17 +23,24 @@ export function TranslationSelector({
   onTranslationChange,
   showDetails = false,
 }: TranslationSelectorProps) {
-  const currentTranslation = selectedTranslation || getDefaultTranslation().identifier;
+  // Coerce to a supported translation if an unsupported one was persisted/selected
+  const idRaw = selectedTranslation || getDefaultTranslation().identifier;
+  const currentTranslation = hasApiResource(idRaw)
+    ? idRaw
+    : getDefaultTranslation().identifier;
   const contentRef = useRef<HTMLDivElement | null>(null);
 
   // Group once
   const translationsByLanguage = useMemo(() => {
-    return getAllTranslations().reduce((groups, translation) => {
-      const language = translation.language;
-      if (!groups[language]) groups[language] = [];
-      groups[language].push(translation);
-      return groups;
-    }, {} as Record<string, typeof BibleTranslations[keyof typeof BibleTranslations][]>);
+    // Only include translations that have an API resource
+    return getAllTranslations()
+      .filter(t => hasApiResource(t.identifier))
+      .reduce((groups, translation) => {
+        const language = translation.language;
+        if (!groups[language]) groups[language] = [];
+        groups[language].push(translation);
+        return groups;
+      }, {} as Record<string, typeof BibleTranslations[keyof typeof BibleTranslations][]>);
   }, []);
 
   if (!showDetails) {
@@ -90,13 +97,9 @@ export function TranslationSelector({
                                  dark:data-[state=checked]:bg-blue-900/30 dark:data-[state=checked]:text-blue-300
                                  hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800"
                     >
-                      <div className="flex items-center gap-2">
-                        {/* Check is inside the list item only when selected */}
-                        <Check className="w-4 h-4 opacity-0 group-data-[state=checked]:opacity-100 text-blue-600 dark:text-blue-400 transition-opacity" />
-                        <div className="min-w-0">
-                          <div className="font-medium truncate">{t.name}</div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{t.language}</div>
-                        </div>
+                      <div className="min-w-0">
+                        <div className="font-medium truncate">{t.name}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{t.language}</div>
                       </div>
                     </SelectItem>
                   ))}

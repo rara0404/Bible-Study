@@ -4,8 +4,9 @@ import { StreakTracker } from "./components/StreakTracker";
 import { BookSelector } from "./components/BookSelector";
 import { BibleReader } from "./components/BibleReader";
 import { Favorites } from "./components/Favorites";
-import { TranslationSelector, useTranslationSelection } from "./components/TranslationSelector";
-import { BibleTranslations } from "./services/bibleApi";
+// Removed TranslationSelector import from here
+// import { TranslationSelector, useTranslationSelection } from "./components/TranslationSelector";
+// import { BibleTranslations } from "./services/bibleApi";
 import { Card, CardContent } from "./components/ui/card";
 import { Button } from "./components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
@@ -70,7 +71,7 @@ export default function App() {
   }
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900'}`}>
+    <div className="container mx-auto space-y-6">
       {/* Header */}
       <header className="sticky top-0 z-50 backdrop-blur-md bg-white/80 dark:bg-gray-900/80 border-b border-gray-200/50 dark:border-gray-700/50">
         <div className="max-w-6xl mx-auto px-4 py-4">
@@ -89,17 +90,8 @@ export default function App() {
               </div>
             </div>
 
-            {/* Right side: translation (optional) + hamburger */}
+            {/* Right side: hamburger only (removed header translation selector) */}
             <div className="flex items-center gap-3">
-              {/* Keep or remove this translation selector as you prefer */}
-              <div className="hidden xl:flex">
-                <TranslationSelector
-                  selectedTranslation={selectedTranslation}
-                  onTranslationChange={setSelectedTranslation}
-                />
-              </div>
-
-              {/* Hamburger menu */}
               <div className="relative">
                 <Button
                   variant="outline"
@@ -110,15 +102,12 @@ export default function App() {
                 >
                   <Menu className="w-5 h-5" />
                 </Button>
-
                 {isNavOpen && (
                   <>
-                    {/* click-away overlay */}
                     <div
                       className="fixed inset-0 z-40"
                       onClick={() => setIsNavOpen(false)}
                     />
-                    {/* dropdown */}
                     <div className="absolute right-0 mt-2 z-50 w-56 rounded-lg border bg-white shadow-xl">
                       <div className="px-3 py-2 text-xs font-medium text-gray-500 tracking-wide uppercase">
                         Menu
@@ -151,8 +140,6 @@ export default function App() {
           </div>
         </div>
       </header>
-
-      {/* Navigation moved into header hamburger menu */}
 
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-4 py-8">
@@ -246,29 +233,18 @@ export default function App() {
         )}
 
         {viewMode === 'read' && currentBook && (
-          <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                Bible Reader
-              </h2>
-              <div className="relative z-10">
-                <TranslationSelector 
-                  selectedTranslation={selectedTranslation}
-                  onTranslationChange={setSelectedTranslation}
-                />
-              </div>
-            </div>
-            <div className="relative z-0">
-              <BibleReader 
-                book={currentBook}
-                chapter={currentChapter}
-                translation={selectedTranslation}
-                onNavigate={(book, chapter) => {
-                  setCurrentBook(book);
-                  setCurrentChapter(chapter);
-                }}
-              />
-            </div>
+          <div className="relative z-0">
+            {/* Removed the top "Bible Reader + Translation" toolbar */}
+            <BibleReader
+              book={currentBook}
+              chapter={currentChapter}
+              translation={selectedTranslation}
+              onNavigate={(book, chapter) => {
+                setCurrentBook(book);
+                setCurrentChapter(chapter);
+              }}
+              onTranslationChange={setSelectedTranslation}
+            />
           </div>
         )}
 
@@ -277,7 +253,6 @@ export default function App() {
             onNavigateToVerse={handleNavigateToVerse}
           />
         )}
-
       </main>
     </div>
   );
