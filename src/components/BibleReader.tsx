@@ -230,9 +230,19 @@ export function BibleReader(props: BibleReaderProps) {
         <CardHeader className="chapter-header sticky top-16 z-20 border-b bg-white/70 dark:bg-gray-900/70 backdrop-blur supports-[backdrop-filter]:bg-white/60">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <CardTitle className="text-xl sm:text-2xl truncate">
-                {book} Chapter {chapter}
-              </CardTitle>
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-xl sm:text-2xl font-bold truncate">
+                  {book}
+                </CardTitle>
+                <span
+                  className="inline-flex items-baseline gap-1 text-gray-700 dark:text-gray-200"
+                  aria-label={`Chapter ${chapter}`}
+                >
+                  <span className="text-xl sm:text-2xl font-normal leading-none">
+                    Chapter {chapter}
+                  </span>
+                </span>
+              </div>
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 Tap a verse to add a note or favorite it
               </p>

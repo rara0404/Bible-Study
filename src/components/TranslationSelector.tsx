@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef } from "react";
-import { Languages, ChevronDown } from "lucide-react";
+import { Languages, ChevronDown, Info } from "lucide-react";
 import {
   Select,
   SelectTrigger,
@@ -8,7 +8,15 @@ import {
   SelectGroup,
   SelectItem,
   SelectLabel,
-} from "../components/ui/select";
+} from "./ui/select";
+import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
+import { Badge } from "./ui/badge";
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from "./ui/collapsible";
+import { Button } from "./ui/button";
 import "./TranslationSelector.css";
 import { BibleTranslations, getAllTranslations, getDefaultTranslation, hasApiResource } from "../services/bibleApi";
 
@@ -29,6 +37,11 @@ export function TranslationSelector({
     ? idRaw
     : getDefaultTranslation().identifier;
   const contentRef = useRef<HTMLDivElement | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const selectedInfo = useMemo(
+    () => Object.values(BibleTranslations).find(t => t.identifier === currentTranslation),
+    [currentTranslation]
+  );
 
   // Group once
   const translationsByLanguage = useMemo(() => {
@@ -76,6 +89,7 @@ export function TranslationSelector({
           <SelectContent
             ref={contentRef}
             position="popper"
+            align="end"
             sideOffset={8}
             className="w-80 p-1 shadow-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-lg"
           >
@@ -85,12 +99,10 @@ export function TranslationSelector({
                   <SelectLabel className="px-2 py-1 text-[11px] tracking-wide uppercase text-gray-500 dark:text-gray-400">
                     {language}
                   </SelectLabel>
-
                   {list.map((t) => (
                     <SelectItem
                       key={t.identifier}
                       value={t.identifier}
-                      // textValue ensures the trigger only shows the version name (no check or language)
                       textValue={t.name}
                       className="group relative cursor-pointer rounded-md px-2 py-2 transition-colors
                                  data-[state=checked]:bg-blue-50 data-[state=checked]:text-blue-700
