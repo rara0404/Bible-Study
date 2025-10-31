@@ -256,6 +256,36 @@ function MenubarSubContent({
   );
 }
 
+// Example navigation inside your menu
+import { Home, Book, BookOpen, Heart } from "lucide-react";
+
+const navigationItems = [
+  { id: "home", label: "Home", icon: Home },
+  { id: "books", label: "Bible", icon: Book },
+  { id: "read", label: "Read", icon: BookOpen },
+  { id: "favorites", label: "Favorites", icon: Heart },
+];
+
+<Menubar>
+  <MenubarMenu>
+    <MenubarTrigger>
+      <Menu className="w-5 h-5" />
+    </MenubarTrigger>
+    <MenubarContent align="end" sideOffset={8} className="w-56 h-64 rounded-xl bg-white shadow-xl border-0">
+      {navigationItems.map(item => (
+        <MenubarItem
+          key={item.id}
+          onClick={() => setViewMode(item.id)}
+          className="flex items-center gap-3 px-3 py-3 text-base text-gray-800 hover:bg-gray-100 rounded-xl"
+        >
+          <item.icon className="w-5 h-5 text-gray-500" />
+          {item.label}
+        </MenubarItem>
+      ))}
+    </MenubarContent>
+  </MenubarMenu>
+</Menubar>
+
 export {
   Menubar,
   MenubarPortal,

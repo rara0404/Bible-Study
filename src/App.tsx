@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 import { ImageWithFallback } from "./components/figma/ImageWithFallback";
 import { Book, Home, BookOpen, Calendar, Flame, Moon, Sun, Heart, Menu } from "lucide-react";
 import { getLastReading } from "./services/readingProgress";
+import "./styles/scrollbar.css";
 
 type ViewMode = 'home' | 'books' | 'read' | 'favorites';
 
@@ -94,7 +95,7 @@ export default function App() {
             <div className="flex items-center gap-3">
               <div className="relative">
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="icon"
                   className="h-10 w-10"
                   onClick={() => setIsNavOpen(v => !v)}
@@ -108,15 +109,16 @@ export default function App() {
                       className="fixed inset-0 z-40"
                       onClick={() => setIsNavOpen(false)}
                     />
-                    <div className="absolute right-0 mt-2 z-50 w-56 rounded-lg border bg-white shadow-xl">
-                      <div className="px-3 py-2 text-xs font-medium text-gray-500 tracking-wide uppercase">
-                        Menu
-                      </div>
-                      <ul className="py-1">
+                    {/* Align menu with main content */}
+                    <div className="absolute mt-2 z-50 w-56 h-64 rounded-xl bg-white shadow-xl"
+                         style={{
+                           right: '1rem', // matches px-4 padding (change to '2rem' if using px-8)
+                         }}>
+                      <ul className="py-4 px-2">
                         {navigationItems.map(item => (
                           <li key={item.id}>
                             <button
-                              className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-800 hover:bg-gray-100"
+                              className="w-full flex items-center gap-3 px-3 py-3 text-base text-gray-800 hover:bg-gray-100 rounded-xl"
                               onClick={() => {
                                 if (item.id === 'read') {
                                   resumeReading();
@@ -126,7 +128,7 @@ export default function App() {
                                 setIsNavOpen(false);
                               }}
                             >
-                              <item.icon className="w-4 h-4 text-gray-500" />
+                              <item.icon className="w-5 h-5 text-gray-500" />
                               {item.label}
                             </button>
                           </li>
@@ -146,30 +148,32 @@ export default function App() {
         {viewMode === 'home' && (
           <div className="space-y-8">
             {/* Hero Section */}
-            <Card className="overflow-hidden">
+            <Card className="overflow-hidden rounded-3xl border-0 shadow-xl relative">
               <CardContent className="p-0">
-                <div className="relative h-48 md:h-64">
+                <div className="relative h-48 md:h-64 lg:h-30">
+                  {/* Full-bleed image */}
                   <ImageWithFallback
                     src="https://images.unsplash.com/photo-1759149784774-d113f3258cdc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxvcGVuJTIwYmlibGUlMjBwZWFjZWZ1bCUyMHJlYWRpbmd8ZW58MXx8fHwxNzU5MjAwMTgwfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
                     alt="Open Bible"
-                    className="w-full h-full object-cover"
+                    className="absolute inset-0 w-full h-full object-cover block"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-900/70 to-purple-900/70 flex items-center justify-center">
-                    <div className="text-center text-white">
-                      <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                        Welcome to Bible Study
-                      </h2>
-                      <p className="text-lg md:text-xl mb-6 opacity-90">
-                        Discover God's word through daily reading and reflection
-                      </p>
-                      <Button 
-                        size="lg"
-                        onClick={() => setViewMode('books')}
-                        className="bg-white text-blue-900 hover:bg-gray-100"
-                      >
-                        Start Reading
-                      </Button>
-                    </div>
+                  {/* Full-bleed gradient overlay */}
+                  <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-blue-900/70 to-purple-900/70" />
+                  {/* Centered content */}
+                  <div className="relative z-10 flex flex-col items-center justify-center h-full text-center">
+                    <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">
+                      Welcome to Bible Study
+                    </h2>
+                    <p className="text-lg md:text-xl mb-6 opacity-90 text-white">
+                      Discover God's word through daily reading and reflection
+                    </p>
+                    <Button 
+                      size="lg"
+                      onClick={() => setViewMode('books')}
+                      className="bg-white text-blue-900 hover:bg-gray-100"
+                    >
+                      Start Reading
+                    </Button>
                   </div>
                 </div>
               </CardContent>

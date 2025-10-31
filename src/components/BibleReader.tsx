@@ -55,6 +55,36 @@ function cleanVerseText(text: string): string {
   return text.replace(/\bunrefined\b/gi, '').replace(/\s+/g, ' ').trim();
 }
 
+// Add: italics for quoted sayings and paragraph grouping
+function italicizeQuotes(text: string): string {
+  // Curly quotes
+  let out = text.replace(/“([^”]+)”/g, '<em>$1</em>');
+  // Fallback ASCII quotes (avoid matching single apostrophes)
+  out = out.replace(/"([^"]+)"/g, '<em>$1</em>');
+  return out;
+}
+
+function groupVersesIntoParagraphs(verses: BibleVerse[], maxLen = 600): BibleVerse[][] {
+  const groups: BibleVerse[][] = [];
+  let current: BibleVerse[] = [];
+  let length = 0;
+
+  verses.forEach(v => {
+    const l = v.text.length;
+    // Start a new paragraph if current is long enough and we ended a sentence
+    const endsSentence = /[.!?]["”']?\s*$/.test(v.text);
+    if (current.length > 0 && (length + l > maxLen) && endsSentence) {
+      groups.push(current);
+      current = [];
+      length = 0;
+    }
+    current.push(v);
+    length += l + 1;
+  });
+  if (current.length) groups.push(current);
+  return groups.length ? groups : [verses];
+}
+
 export function BibleReader(props: BibleReaderProps) {
   const { book, chapter, translation } = props;
   const topRef = useRef<HTMLDivElement | null>(null);
@@ -205,7 +235,7 @@ export function BibleReader(props: BibleReaderProps) {
   useEffect(() => {
     const el = topRef.current;
     if (!el) return;
-    const headerOffset = 96; // app header + sticky chapter header
+    const headerOffset = 72; // tighter offset to shrink the gap
     const y = el.getBoundingClientRect().top + window.scrollY - headerOffset;
     window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
   }, [book, chapter]);
@@ -224,10 +254,10 @@ export function BibleReader(props: BibleReaderProps) {
   }, [book, chapter, hasNext, loading, props]);
 
   return (
-    <div className="bible-reader" ref={topRef}>
+    <div className="bible-reader -mt-3 md:-mt-4" ref={topRef}>
       {/* Enhanced: single unified card with sticky header */}
       <Card className="chapter-card overflow-hidden">
-        <CardHeader className="chapter-header sticky top-16 z-20 border-b bg-white/70 dark:bg-gray-900/70 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+        <CardHeader className="chapter-header sticky top-10 z-20 border-b bg-white/70 dark:bg-gray-900/70 backdrop-blur supports-[backdrop-filter]:bg-white/60 px-4 md:px-6 py-2 md:py-3">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <div className="flex items-center gap-2">
@@ -309,80 +339,30 @@ export function BibleReader(props: BibleReaderProps) {
             </div>
           ) : !error && verses.length > 0 ? (
             <>
-              <div className={`space-y-3 bible-font-${fontSize}`}>
-                {verses.map((verse: BibleVerse) => {
-                  const hasNote = getVerseNote(verse.verse);
-                  const isSelected = selectedVerse === verse.verse;
-                  const isFav = isFavorite(verse);
-
-                  return (
-                    <div key={verse.verse} className="space-y-2">
-                      <div
-                        className={`p-4 rounded-xl cursor-pointer transition-all verse-highlight
-                          ring-1 ring-transparent hover:ring-gray-200 dark:hover:ring-gray-700
-                          ${isSelected
-                            ? 'bg-blue-50/70 dark:bg-blue-950 border border-blue-200/70 dark:border-blue-800'
-                            : hasNote
-                            ? 'bg-yellow-50/60 dark:bg-yellow-950 border border-yellow-200/70 dark:border-yellow-800'
-                            : 'bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800'}
-                          shadow-sm`}
-                        onClick={() => handleVerseClick(verse.verse)}
-                      >
-                        <div className="flex gap-4">
-                          <Badge variant="outline" className="flex-shrink-0 h-6 rounded-full">
-                            {verse.verse}
-                          </Badge>
-                          <p className="leading-relaxed flex-1">
-                            {verse.text}
-                          </p>
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleFavorite(verse);
-                              }}
-                              className={`p-1 rounded-full transition-colors hover:bg-gray-200 dark:hover:bg-gray-700 ${
-                                isFav ? 'text-red-500 hover:text-red-600' : 'text-gray-400 hover:text-red-400'
-                              }`}
-                              title={isFav ? 'Remove from favorites' : 'Add to favorites'}
-                              aria-label={isFav ? 'Remove from favorites' : 'Add to favorites'}
-                            >
-                              <Heart
-                                className={`w-4 h-4 transition-all duration-200 ${isFav ? 'fill-current text-red-500' : ''}`}
-                                fill={isFav ? 'currentColor' : 'none'}
-                              />
-                            </button>
-                            {hasNote && (
-                              <StickyNote className="w-5 h-5 text-yellow-600 dark:text-yellow-400 note-indicator" />
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {hasNote && !isSelected && (
-                        <div className="ml-12 p-3 bg-yellow-100/70 dark:bg-yellow-900 rounded-lg border border-yellow-200/60 dark:border-yellow-700">
-                          <div className="flex items-start justify-between gap-2">
-                            <p className="text-sm text-yellow-800 dark:text-yellow-200 italic">
-                              "{hasNote.note}"
-                            </p>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e: any) => {
-                                e.stopPropagation();
-                                deleteNote(verse.verse);
-                              }}
-                              className="text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-200 h-6 w-6 p-0"
-                              aria-label="Delete note"
-                            >
-                              ×
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+              {/* Paragraph mode: smaller font, verses inline */}
+              <div className="space-y-5 text-[15px] sm:text-[16px] leading-7 text-gray-900 dark:text-gray-100">
+                {groupVersesIntoParagraphs(verses).map((para, idx) => (
+                  <p key={idx} className="selection:bg-blue-100/70 dark:selection:bg-blue-900/40">
+                    {para.map(v => {
+                      const isSelected = selectedVerse === v.verse;
+                      return (
+                        <span
+                          key={v.verse}
+                          onClick={() => handleVerseClick(v.verse)}
+                          className={`cursor-pointer rounded px-0.5 transition-colors
+                                      hover:bg-gray-100 dark:hover:bg-gray-800
+                                      ${isSelected ? 'bg-blue-50/70 dark:bg-blue-950' : ''}`}
+                        >
+                          <sup className="mr-1 text-[10px] align-super text-gray-500">{v.verse}</sup>
+                          <span
+                            dangerouslySetInnerHTML={{ __html: italicizeQuotes(v.text) }}
+                          />
+                          {' '}
+                        </span>
+                      );
+                    })}
+                  </p>
+                ))}
               </div>
 
               {/* Bottom navigation after the last verse */}
