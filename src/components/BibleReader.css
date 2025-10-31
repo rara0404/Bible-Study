@@ -44,3 +44,11 @@
     opacity: 0.5;
   }
 }
+
+/* Soft verse hover + selection is handled with Tailwind classes now. Keep any existing rules. */
+
+/* Optional: tune sticky header overlap relative to the app header height */
+.chapter-card .chapter-header {
+  /* Tailwind handles sticky + backdrop; this is just a safe min-height for balance */
+  min-height: 64px;
+}

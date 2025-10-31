@@ -1,10 +1,15 @@
-import { useState } from "react";
-import { Button } from "./ui/button";
-import { Badge } from "./ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
-import { ChevronDown, Languages, Info } from "lucide-react";
+import { useState, useMemo, useRef } from "react";
+import { Languages, Check } from "lucide-react";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+} from "../components/ui/select";
+import "./TranslationSelector.css";
 import { BibleTranslations, getAllTranslations, getTranslationsByLanguage, getDefaultTranslation } from "../services/bibleApi";
 
 interface TranslationSelectorProps {
@@ -13,79 +18,91 @@ interface TranslationSelectorProps {
   showDetails?: boolean;
 }
 
-export function TranslationSelector({ 
-  selectedTranslation, 
+export function TranslationSelector({
+  selectedTranslation,
   onTranslationChange,
-  showDetails = false 
+  showDetails = false,
 }: TranslationSelectorProps) {
-  const [isOpen, setIsOpen] = useState(false);
   const currentTranslation = selectedTranslation || getDefaultTranslation().identifier;
-  const selectedInfo = Object.values(BibleTranslations).find(t => t.identifier === currentTranslation);
-  
-  // Group translations by language
-  const translationsByLanguage = getAllTranslations().reduce((groups, translation) => {
-    const language = translation.language;
-    if (!groups[language]) {
-      groups[language] = [];
-    }
-    groups[language].push(translation);
-    return groups;
-  }, {} as Record<string, typeof BibleTranslations[keyof typeof BibleTranslations][]>);
+  const contentRef = useRef<HTMLDivElement | null>(null);
+
+  // Group once
+  const translationsByLanguage = useMemo(() => {
+    return getAllTranslations().reduce((groups, translation) => {
+      const language = translation.language;
+      if (!groups[language]) groups[language] = [];
+      groups[language].push(translation);
+      return groups;
+    }, {} as Record<string, typeof BibleTranslations[keyof typeof BibleTranslations][]>);
+  }, []);
 
   if (!showDetails) {
-    // Simple dropdown selector with enhanced styling
     return (
       <div className="flex items-center gap-3">
         <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/30 transition-colors">
           <Languages className="w-4 h-4 text-blue-600 dark:text-blue-400" />
         </div>
-        <Select value={currentTranslation} onValueChange={onTranslationChange}>
-          <SelectTrigger className="w-56 h-11 border border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 transition-colors duration-200 bg-white dark:bg-gray-800">
+
+        <Select
+          value={currentTranslation}
+          onValueChange={onTranslationChange}
+          onOpenChange={(open) => {
+            if (open) {
+              requestAnimationFrame(() => {
+                const scroller = contentRef.current?.querySelector(".ts-scroll,[data-radix-select-viewport]") as HTMLElement | null;
+                if (scroller) {
+                  scroller.scrollTop = 0;
+                  setTimeout(() => (scroller.scrollTop = 0), 40);
+                }
+              });
+            }
+          }}
+        >
+          <SelectTrigger
+            aria-label="Select Bible translation"
+            // Fixed width + single-line truncation so size never changes
+            className="h-10 min-w-[18rem] max-w-[18rem] w-[18rem] overflow-hidden whitespace-nowrap text-ellipsis justify-between border border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 bg-white dark:bg-gray-800 data-[state=open]:ring-2 data-[state=open]:ring-blue-200 dark:data-[state=open]:ring-blue-900/40"
+          >
             <SelectValue placeholder="Select translation" />
           </SelectTrigger>
-          <SelectContent 
-            className="w-56 max-h-[300px] overflow-y-auto border border-gray-300 dark:border-gray-600 shadow-lg bg-white dark:bg-gray-800"
+
+          <SelectContent
+            ref={contentRef}
             position="popper"
-            side="bottom"
-            align="start"
-            sideOffset={4}
-            style={{ zIndex: 9999 }}
+            sideOffset={8}
+            className="w-80 p-1 shadow-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-lg"
           >
-            {Object.entries(translationsByLanguage).map(([language, translations]) => (
-              <div key={language}>
-                <div className="px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-750 border-b border-gray-200 dark:border-gray-700 sticky top-0">
-                  {language}
-                </div>
-                {translations.map((translation) => (
-                  <SelectItem 
-                    key={translation.identifier} 
-                    value={translation.identifier}
-                    className={`hover:bg-blue-50 dark:hover:bg-blue-900/30 focus:bg-blue-100 dark:focus:bg-blue-900/50 cursor-pointer transition-all duration-200 py-3 px-3 ${
-                      currentTranslation === translation.identifier 
-                        ? 'bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-500' 
-                        : 'hover:border-l-4 hover:border-blue-300 dark:hover:border-blue-600'
-                    }`}
-                  >
-                    <div className="flex flex-col items-start w-full">
-                      <span className={`font-medium text-sm transition-colors duration-200 ${
-                        currentTranslation === translation.identifier 
-                          ? 'text-blue-700 dark:text-blue-300' 
-                          : 'text-gray-900 dark:text-gray-100'
-                      }`}>
-                        {translation.name}
-                      </span>
-                      <span className={`text-xs mt-1 transition-colors duration-200 ${
-                        currentTranslation === translation.identifier 
-                          ? 'text-blue-600 dark:text-blue-400' 
-                          : 'text-gray-500 dark:text-gray-400'
-                      }`}>
-                        {translation.language}
-                      </span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </div>
-            ))}
+            <div className="ts-scroll pr-1">
+              {Object.entries(translationsByLanguage).map(([language, list]) => (
+                <SelectGroup key={language} className="mb-2">
+                  <SelectLabel className="px-2 py-1 text-[11px] tracking-wide uppercase text-gray-500 dark:text-gray-400">
+                    {language}
+                  </SelectLabel>
+
+                  {list.map((t) => (
+                    <SelectItem
+                      key={t.identifier}
+                      value={t.identifier}
+                      // textValue ensures the trigger only shows the version name (no check or language)
+                      textValue={t.name}
+                      className="group relative cursor-pointer rounded-md px-2 py-2 transition-colors
+                                 data-[state=checked]:bg-blue-50 data-[state=checked]:text-blue-700
+                                 dark:data-[state=checked]:bg-blue-900/30 dark:data-[state=checked]:text-blue-300
+                                 hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800"
+                    >
+                      <div className="flex items-center gap-2">
+                        {/* Check is inside the list item only when selected */}
+                        <Check className="w-4 h-4 opacity-0 group-data-[state=checked]:opacity-100 text-blue-600 dark:text-blue-400 transition-opacity" />
+                        <div className="min-w-0">
+                          <div className="font-medium truncate">{t.name}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{t.language}</div>
+                        </div>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              ))}
+            </div>
           </SelectContent>
         </Select>
       </div>

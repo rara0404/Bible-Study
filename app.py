@@ -514,20 +514,33 @@ def get_reading_history():
 # Auto-record reading when user views a chapter
 @app.route('/api/bible/chapter/<book>/<int:chapter>', methods=['GET'])
 def get_chapter_and_record(book, chapter):
-    """Get Bible chapter and automatically record reading session"""
-    user_id = request.args.get('user_id', 1)
-    translation = request.args.get('translation', 'kjv')
-    
-    # Record the reading session
-    record_reading_session(user_id, book, chapter, verses_read=1, duration_minutes=1)
-    
-    # Return chapter content (you'll need to implement this based on your Bible API)
+    """Get Bible chapter via bible-api.com and record a reading session"""
+    import urllib.request
+    import urllib.error
+
+    user_id = int(request.args.get('user_id', 1))
+    translation = request.args.get('translation', 'web')  # bible-api.com "web" maps to World English Bible
+
+    # Record the reading session (unique constraint prevents duplicate same-day rows)
+    record_reading_session(user_id, book, chapter, verses_read=1, duration_minutes=0)
+
+    # Proxy to bible-api.com parameterized chapter endpoint if available in your integration
+    # Using test-api.js pattern: https://bible-api.com/data/<translation>/<bookId>/<chapter>
+    # Book must be mapped to translation-specific ID; if you want a simple user-facing endpoint, accept bookId instead of name.
     try:
-        from services.bibleApi import fetchChapter
-        chapter_data = fetchChapter(book, chapter, translation)
-        return jsonify(chapter_data)
+        # Minimal example: accept a pre-mapped 3-letter ID in "book" param; otherwise add a mapping layer here.
+        # For consistency with your frontend, prefer receiving a bookId (e.g., JHN) from the client.
+        url = f'https://bible-api.com/data/{translation}/{book}/{chapter}'
+        with urllib.request.urlopen(url, timeout=10) as resp:
+            status = resp.getcode()
+            if status != 200:
+                return jsonify({'error': f'Bible API error: HTTP {status}'}), status
+            data = json.load(resp)
+            return jsonify(data)
+    except urllib.error.HTTPError as e:
+        return jsonify({'error': f'Bible API error: HTTP {e.code}'}), e.code
     except Exception as e:
-        return jsonify({'error': 'Failed to fetch chapter'}), 500
+        return jsonify({'error': f'Failed to fetch chapter: {str(e)}'}), 500
 
 # Missing: Verse interactions (for daily verse favorites/notes)
 @app.route('/api/verse-interactions', methods=['GET', 'POST'])

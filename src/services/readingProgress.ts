@@ -36,3 +36,52 @@ export async function getLastReading(userId?: string): Promise<LastReading | nul
     return null;
   }
 }
+
+export async function recordReadingSession(params: {
+  userId?: string;
+  book: string;
+  chapter: number;
+  verses_read?: number;
+  duration_minutes?: number;
+}) {
+  try {
+    const res = await fetch('/api/reading-sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: params.userId ?? 1,
+        book: params.book,
+        chapter: params.chapter,
+        verses_read: params.verses_read ?? 1,
+        duration_minutes: params.duration_minutes ?? 0,
+      }),
+    });
+    if (!res.ok) {
+      // Non-fatal for UX; log for diagnostics
+      console.warn('recordReadingSession failed', res.status, await res.text());
+    }
+  } catch (e) {
+    console.warn('recordReadingSession error', e);
+  }
+}
+
+export async function getFavoriteVerses(userId?: string) {
+  const res = await fetch(`/api/favorite-verses?user_id=${encodeURIComponent(userId ?? '1')}`);
+  if (!res.ok) return [];
+  return (await res.json()) as Array<{ id: number; book: string; reference: string; text: string; note?: string; }>;
+}
+
+export async function addFavoriteVerse(data: { userId?: string; book: string; reference: string; text: string; note?: string }) {
+  const res = await fetch('/api/favorite-verses', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      user_id: data.userId ?? 1,
+      book: data.book,
+      reference: data.reference,
+      text: data.text,
+      note: data.note ?? ''
+    }),
+  });
+  return res.ok;
+}
