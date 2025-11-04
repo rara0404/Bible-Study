@@ -37,10 +37,11 @@ export function Favorites({ onNavigateToVerse }: FavoritesProps) {
     localStorage.setItem('bibleFavorites', JSON.stringify(updatedFavorites));
   };
 
-  const filteredFavorites = favorites.filter((favorite: FavoriteVerse) => 
-    favorite.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    favorite.book.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredFavorites = favorites
+    .filter((favorite: FavoriteVerse) => 
+      favorite.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      favorite.book.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
   const groupedFavorites = filteredFavorites.reduce((groups: Record<string, FavoriteVerse[]>, favorite) => {
     const key = `${favorite.book} ${favorite.chapter}`;
@@ -55,7 +56,7 @@ export function Favorites({ onNavigateToVerse }: FavoritesProps) {
     return new Date(dateString).toLocaleDateString();
   };
 
-  if (favorites.length === 0) {
+  if (filteredFavorites.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
         <Heart className="w-16 h-16 text-gray-300 dark:text-gray-600 mb-4" />
@@ -77,7 +78,7 @@ export function Favorites({ onNavigateToVerse }: FavoritesProps) {
             Favorite Verses
           </h2>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            {favorites.length} verse{favorites.length !== 1 ? 's' : ''} saved
+            {filteredFavorites.length} verse{filteredFavorites.length !== 1 ? 's' : ''} saved
           </p>
         </div>
         <div className="relative w-full sm:w-72">

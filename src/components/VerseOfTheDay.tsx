@@ -66,15 +66,27 @@ export function VerseOfTheDay({ translation = "web" }: VerseOfTheDayProps) {
   const [liked, setLiked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [favorites, setFavorites] = useState<BibleVerse[]>([]);
 
-  // Load favorites from localStorage
+  // Store likes for Verse of the Day in a separate key
   useEffect(() => {
-    const savedFavorites = localStorage.getItem('bibleFavorites');
-    if (savedFavorites) {
-      setFavorites(JSON.parse(savedFavorites));
+    if (verse) {
+      const likeKey = `likedVerseOfTheDay_${verse.book}_${verse.chapter}_${verse.verse}_${translation}`;
+      const isLiked = localStorage.getItem(likeKey) === "true";
+      setLiked(isLiked);
     }
-  }, []);
+  }, [verse, translation]);
+
+  const toggleLike = () => {
+    if (!verse) return;
+    const likeKey = `likedVerseOfTheDay_${verse.book}_${verse.chapter}_${verse.verse}_${translation}`;
+    if (liked) {
+      localStorage.removeItem(likeKey);
+      setLiked(false);
+    } else {
+      localStorage.setItem(likeKey, "true");
+      setLiked(true);
+    }
+  };
 
   // Get daily verse based on date
   const getDailyVerse = (): string => {
@@ -89,12 +101,8 @@ export function VerseOfTheDay({ translation = "web" }: VerseOfTheDayProps) {
     
     try {
       const dailyVerseReference = getDailyVerse();
-      console.log('Fetching daily verse:', dailyVerseReference);
-      
       const response = await getVerse(dailyVerseReference, translation);
-      console.log('API Response:', response);
-      
-        if (response.verses && response.verses.length > 0) {
+      if (response.verses && response.verses.length > 0) {
         const apiVerse = response.verses[0];
         const convertedVerse: BibleVerse = {
           book: (response as any).book_name || (apiVerse as any).book_name || (apiVerse as any).book || "Unknown",
@@ -102,27 +110,16 @@ export function VerseOfTheDay({ translation = "web" }: VerseOfTheDayProps) {
           verse: apiVerse.verse,
           text: apiVerse.text.trim()
         };
-        
         setVerse(convertedVerse);
-        
-        // Check if this verse is already favorited
-        const isAlreadyFavorited = favorites.some(fav => 
-          fav.book === convertedVerse.book && 
-          fav.chapter === convertedVerse.chapter && 
-          fav.verse === convertedVerse.verse
-        );
-        setLiked(isAlreadyFavorited);
       } else {
         throw new Error('No verse data received from API');
       }
     } catch (err) {
-      console.error('Error fetching verse of the day:', err);
       if (err instanceof BibleApiError) {
         setError(err.message);
       } else {
         setError('Failed to load verse of the day. Please try again.');
       }
-      
       // Fallback verse if API fails
       setVerse({
         book: "John",
@@ -140,34 +137,9 @@ export function VerseOfTheDay({ translation = "web" }: VerseOfTheDayProps) {
     fetchDailyVerse();
   }, [translation]);
 
-  useEffect(() => {
-    if (verse) {
-      const isAlreadyFavorited = favorites.some(fav => 
-        fav.book === verse.book && 
-        fav.chapter === verse.chapter && 
-        fav.verse === verse.verse
-      );
-      setLiked(isAlreadyFavorited);
-    }
-  }, [favorites, verse]);
-
-  const toggleFavorite = () => {
-    if (!verse) return;
-    
-    const updatedFavorites = liked 
-      ? favorites.filter(fav => !(fav.book === verse.book && fav.chapter === verse.chapter && fav.verse === verse.verse))
-      : [...favorites, { ...verse, translation }];
-    
-    setFavorites(updatedFavorites);
-    setLiked(!liked);
-    localStorage.setItem('bibleFavorites', JSON.stringify(updatedFavorites));
-  };
-
   const handleShare = () => {
     if (!verse) return;
-    
     const verseText = `"${verse.text}" - ${verse.book} ${verse.chapter}:${verse.verse}`;
-    
     if (navigator.share) {
       navigator.share({
         title: 'Verse of the Day',
@@ -177,7 +149,7 @@ export function VerseOfTheDay({ translation = "web" }: VerseOfTheDayProps) {
       navigator.clipboard.writeText(verseText);
     }
   };
-
+  
   return (
     <TooltipProvider>
       <Card className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/50 dark:via-indigo-950/50 dark:to-purple-950/50 border-blue-200/50 dark:border-blue-800/50">
@@ -215,7 +187,7 @@ export function VerseOfTheDay({ translation = "web" }: VerseOfTheDayProps) {
                 Try Again
               </Button>
             </div>
-          ) : verse ? (
+          ) : verse && (
             <div className="space-y-4 animate-in fade-in-50 slide-in-from-bottom-4 duration-700">
               <blockquote className="border-l-4 border-blue-400 pl-4">
                 <p className="text-lg leading-relaxed italic text-gray-700 dark:text-gray-300">
@@ -239,7 +211,7 @@ export function VerseOfTheDay({ translation = "web" }: VerseOfTheDayProps) {
                             ? 'text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50' 
                             : 'text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/50'
                         }`}
-                        onClick={toggleFavorite}
+                        onClick={toggleLike}
                       >
                         <Heart 
                           className={`w-4 h-4 transition-all duration-200 ${
@@ -250,7 +222,7 @@ export function VerseOfTheDay({ translation = "web" }: VerseOfTheDayProps) {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>{liked ? 'Remove from favorites' : 'Add to favorites'}</p>
+                      <p>{liked ? 'Unlike verse of the day' : 'Like verse of the day'}</p>
                     </TooltipContent>
                   </Tooltip>
                   
@@ -272,7 +244,7 @@ export function VerseOfTheDay({ translation = "web" }: VerseOfTheDayProps) {
                 </div>
               </div>
             </div>
-          ) : null}
+          )}
         </CardContent>
       </Card>
     </TooltipProvider>

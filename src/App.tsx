@@ -4,9 +4,6 @@ import { StreakTracker } from "./components/StreakTracker";
 import { BookSelector } from "./components/BookSelector";
 import { BibleReader } from "./components/BibleReader";
 import { Favorites } from "./components/Favorites";
-// Removed TranslationSelector import from here
-// import { TranslationSelector, useTranslationSelection } from "./components/TranslationSelector";
-// import { BibleTranslations } from "./services/bibleApi";
 import { Card, CardContent } from "./components/ui/card";
 import { Button } from "./components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
@@ -19,7 +16,7 @@ type ViewMode = 'home' | 'books' | 'read' | 'favorites';
 
 const navigationItems = [
   { id: 'home', label: 'Home', icon: Home },
-  { id: 'books', label: 'Bible', icon: Book },
+  { id: 'books', label: 'Books', icon: Book },
   { id: 'read', label: 'Read', icon: BookOpen },
   { id: 'favorites', label: 'Favorites', icon: Heart },
 ] as const;
@@ -28,12 +25,9 @@ export default function App() {
   const [viewMode, setViewMode] = useState<ViewMode>('home');
   const [currentBook, setCurrentBook] = useState<string>('');
   const [currentChapter, setCurrentChapter] = useState<number>(1);
-  // If you use the TranslationSelector hook, keep using it:
-  // const { selectedTranslation, handleTranslationChange } = useTranslationSelection();
   const [selectedTranslation, setSelectedTranslation] = useState<string>('web');
   const [isNavOpen, setIsNavOpen] = useState<boolean>(false);
 
-  // If you have auth, set this to the signed-in user's id
   const userId: string | undefined = undefined;
 
   const resumeReading = async () => {
@@ -43,10 +37,7 @@ export default function App() {
       setCurrentChapter(last.chapter);
       if (last.translation) setSelectedTranslation(last.translation);
       setViewMode('read');
-      // Optionally, scroll to verse on render
-      // setTimeout(() => document.querySelector(`[data-verse="${last.verse}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 0);
     } else {
-      // fallback: open book selector
       setViewMode('books');
     }
   };
@@ -91,7 +82,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* Right side: hamburger only (removed header translation selector) */}
             <div className="flex items-center gap-3">
               <div className="relative">
                 <Button
@@ -109,16 +99,14 @@ export default function App() {
                       className="fixed inset-0 z-40"
                       onClick={() => setIsNavOpen(false)}
                     />
-                    {/* Align menu with main content */}
-                    <div className="absolute mt-2 z-50 w-56 h-64 rounded-xl bg-white shadow-xl"
-                         style={{
-                           right: '1rem', // matches px-4 padding (change to '2rem' if using px-8)
-                         }}>
+                    <div className="absolute mt-2 z-50 w-56 h-64 rounded-xl bg-white shadow-xl menu-align">
                       <ul className="py-4 px-2">
                         {navigationItems.map(item => (
                           <li key={item.id}>
                             <button
-                              className="w-full flex items-center gap-3 px-3 py-3 text-base text-gray-800 hover:bg-gray-100 rounded-xl"
+                              className={`w-full flex items-center gap-3 px-3 py-3 text-base text-gray-800 hover:bg-gray-100 rounded-xl ${
+                                viewMode === item.id ? "bg-gray-100 font-bold" : ""
+                              }`}
                               onClick={() => {
                                 if (item.id === 'read') {
                                   resumeReading();
@@ -128,7 +116,20 @@ export default function App() {
                                 setIsNavOpen(false);
                               }}
                             >
-                              <item.icon className="w-5 h-5 text-gray-500" />
+                              <span
+                                className={`w-8 h-8 flex items-center justify-center rounded-lg
+                                  ${viewMode === item.id
+                                    ? "bg-gradient-to-br from-blue-500 to-purple-600"
+                                    : "bg-transparent"
+                                  }`}
+                              >
+                                <item.icon
+                                  className="w-5 h-5"
+                                  color={viewMode === item.id ? "#fff" : "#6b7280"}
+                                  fill={viewMode === item.id ? "#fff" : "none"}
+                                  stroke={viewMode === item.id ? "none" : "currentColor"}
+                                />
+                              </span>
                               {item.label}
                             </button>
                           </li>
@@ -146,46 +147,35 @@ export default function App() {
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-4 py-8">
         {viewMode === 'home' && (
-          <div className="space-y-8">
-            {/* Hero Section */}
-            <Card className="overflow-hidden rounded-3xl border-0 shadow-xl relative">
-              <CardContent className="p-0">
-                <div className="relative h-48 md:h-64 lg:h-30">
-                  {/* Full-bleed image */}
-                  <ImageWithFallback
-                    src="https://images.unsplash.com/photo-1759149784774-d113f3258cdc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxvcGVuJTIwYmlibGUlMjBwZWFjZWZ1bCUyMHJlYWRpbmd8ZW58MXx8fHwxNzU5MjAwMTgwfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
-                    alt="Open Bible"
-                    className="absolute inset-0 w-full h-full object-cover block"
-                  />
-                  {/* Full-bleed gradient overlay */}
-                  <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-blue-900/70 to-purple-900/70" />
-                  {/* Centered content */}
-                  <div className="relative z-10 flex flex-col items-center justify-center h-full text-center">
-                    <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">
-                      Welcome to Bible Study
-                    </h2>
-                    <p className="text-lg md:text-xl mb-6 opacity-90 text-white">
-                      Discover God's word through daily reading and reflection
-                    </p>
-                    <Button 
-                      size="lg"
-                      onClick={() => setViewMode('books')}
-                      className="bg-white text-blue-900 hover:bg-gray-100"
-                    >
-                      Start Reading
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            
-            {/* Main Content Grid */}
+          <div className="space-y-6">
+          <Card className="relative overflow-hidden rounded-3xl shadow-xl border-0">
+            <CardContent className="p-0">
+              <ImageWithFallback
+                src="https://images.unsplash.com/photo-1759149784774-d113f3258cdc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxvcGVuJTIwYmlibGUlMjBwZWFjZWZ1bCUyMHJlYWRpbmd8ZW58MXx8fHwxNzU5MjAwMTgwfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
+                alt="Open Bible"
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-900/70 to-purple-900/70" />
+              <div className="relative z-10 flex flex-col items-center justify-center h-48 md:h-64 lg:h-72 text-center px-4">
+                <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">
+                  Welcome to Bible Study
+                </h2>
+                <p className="text-lg md:text-xl mb-6 opacity-90 text-white">
+                  Discover God's word through daily reading and reflection
+                </p>
+                <Button
+                  size="lg"
+                  onClick={() => setViewMode('books')}
+                  className="bg-white text-blue-900 hover:bg-gray-100"
+                >
+                  Start Reading
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
             <div className="grid lg:grid-cols-3 gap-8">
-              {/* Left Column */}
               <div className="lg:col-span-2 space-y-6">
                 <VerseOfTheDay translation={selectedTranslation} />
-                
-                {/* Quick Actions */}
                 <Card>
                   <CardContent className="p-6">
                     <h3 className="text-lg font-semibold mb-4">Quick Start</h3>
@@ -238,11 +228,11 @@ export default function App() {
 
         {viewMode === 'read' && currentBook && (
           <div className="relative z-0">
-            {/* Removed the top "Bible Reader + Translation" toolbar */}
             <BibleReader
               book={currentBook}
               chapter={currentChapter}
               translation={selectedTranslation}
+          
               onNavigate={(book, chapter) => {
                 setCurrentBook(book);
                 setCurrentChapter(chapter);

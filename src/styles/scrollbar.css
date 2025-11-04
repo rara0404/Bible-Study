@@ -2,7 +2,7 @@
 html, body, #root {
   height: 100%;
   -ms-overflow-style: none;   /* IE/Edge */
-  scrollbar-width: none;     /* Firefox */
+  /* scrollbar-width: none;     Firefox (not supported in Chrome <121, Safari, Samsung Internet) */
 }
 
 /* Chrome/Safari/Opera/Edge (Chromium) */
@@ -16,10 +16,14 @@ body::-webkit-scrollbar,
 
 /* Utility: hide scrollbar on any scrollable element */
 .scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+  -ms-overflow-style: none; /* IE/Edge */
+  /* scrollbar-width: none;    Firefox (not supported in Chrome <121, Safari, Samsung Internet) */
 }
+
+/* Chrome, Safari, Opera, Edge (Chromium) */
 .scrollbar-hide::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
   display: none;
 }
 

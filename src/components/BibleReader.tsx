@@ -207,8 +207,13 @@ export function BibleReader(props: BibleReaderProps) {
       );
     } else {
       const newFavorite: FavoriteVerse = {
-        book, chapter, verse: verse.verse, text: verse.text,
-        translation: translation || 'web', dateAdded: new Date().toISOString()
+        book,
+        chapter,
+        verse: verse.verse,
+        text: verse.text,
+        translation: translation || 'web',
+        dateAdded: new Date().toISOString()
+        // DO NOT add isVerseOfTheDay here!
       };
       updatedFavorites = [...favorites, newFavorite];
     }
@@ -235,7 +240,7 @@ export function BibleReader(props: BibleReaderProps) {
   useEffect(() => {
     const el = topRef.current;
     if (!el) return;
-    const headerOffset = 72; // tighter offset to shrink the gap
+    const headerOffset = 80; // app header + sticky chapter header (reduced)
     const y = el.getBoundingClientRect().top + window.scrollY - headerOffset;
     window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
   }, [book, chapter]);
@@ -254,10 +259,18 @@ export function BibleReader(props: BibleReaderProps) {
   }, [book, chapter, hasNext, loading, props]);
 
   return (
-    <div className="bible-reader -mt-3 md:-mt-4" ref={topRef}>
+    <div className="bible-reader" ref={topRef}>
+      {/* Back Button */}
+      <Button
+        variant="outline"
+        className="mb-4"
+        onClick={() => props.onNavigate(book, 0)}
+      >
+        ← Back to Chapters
+      </Button>
       {/* Enhanced: single unified card with sticky header */}
       <Card className="chapter-card overflow-hidden">
-        <CardHeader className="chapter-header sticky top-10 z-20 border-b bg-white/70 dark:bg-gray-900/70 backdrop-blur supports-[backdrop-filter]:bg-white/60 px-4 md:px-6 py-2 md:py-3">
+        <CardHeader className="chapter-header sticky top-12 z-20 border-b bg-white/70 dark:bg-gray-900/70 backdrop-blur supports-[backdrop-filter]:bg-white/60 px-4 md:px-6 py- md:py-4">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <div className="flex items-center gap-2">
@@ -342,118 +355,71 @@ export function BibleReader(props: BibleReaderProps) {
               {/* Paragraph mode: smaller font, verses inline */}
               <div className="space-y-5 text-[15px] sm:text-[16px] leading-7 text-gray-900 dark:text-gray-100">
                 {groupVersesIntoParagraphs(verses).map((para, idx) => (
-                  <p key={idx} className="selection:bg-blue-100/70 dark:selection:bg-blue-900/40">
+                  <p key={idx} className="relative selection:bg-blue-100/70 dark:selection:bg-blue-900/40">
                     {para.map(v => {
                       const isSelected = selectedVerse === v.verse;
                       return (
-                        <span
-                          key={v.verse}
-                          onClick={() => handleVerseClick(v.verse)}
-                          className={`cursor-pointer rounded px-0.5 transition-colors
-                                      hover:bg-gray-100 dark:hover:bg-gray-800
-                                      ${isSelected ? 'bg-blue-50/70 dark:bg-blue-950' : ''}`}
-                        >
-                          <sup className="mr-1 text-[10px] align-super text-gray-500">{v.verse}</sup>
+                        <span key={v.verse} className="relative inline">
                           <span
-                            dangerouslySetInnerHTML={{ __html: italicizeQuotes(v.text) }}
-                          />
-                          {' '}
+                            onClick={() => handleVerseClick(v.verse)}
+                            className={`cursor-pointer rounded px-0.5 transition-colors
+                              hover:bg-gray-100 dark:hover:bg-gray-800
+                              ${isSelected ? 'bg-blue-50/70 dark:bg-blue-950' : ''}`}
+                          >
+                            <sup className="mr-1 text-[10px] align-super text-gray-500">{v.verse}</sup>
+                            <span dangerouslySetInnerHTML={{ __html: italicizeQuotes(v.text) }} />
+                          </span>
+                          {isSelected && (
+                            <div
+                              className="absolute left-full top-1/2 -translate-y-1/2 ml-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-lg p-6 z-50"
+                              style={{ minWidth: 320 }}
+                            >
+                              <div className="text-lg font-medium mb-4">{book} {chapter}:{v.verse}</div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="mb-4 flex items-center gap-2"
+                                onClick={() => {
+                                  const verseObj = verses.find(verse => verse.verse === v.verse);
+                                  if (verseObj) {
+                                    toggleFavorite(verseObj);
+                                  }
+                                }}
+                              >
+                                <Heart className="w-5 h-5" />
+                                {isFavorite(v) ? "Favorited" : "Add to Favorites"}
+                              </Button>
+                              <div className="mb-2 font-medium">Notes</div>
+                              <Textarea
+                                id="note-textarea"
+                                placeholder="Add a note about this verse..."
+                                value={noteText}
+                                onChange={e => setNoteText(e.target.value)}
+                                rows={3}
+                                className="w-full mb-2 bg-gray-50"
+                              />
+                              <Button
+                                className="w-full bg-gray-900 text-white mt-2"
+                                onClick={saveNote}
+                              >
+                                Save Note
+                              </Button>
+                            </div>
+                          )}
                         </span>
                       );
                     })}
                   </p>
                 ))}
               </div>
-
-              {/* Bottom navigation after the last verse */}
-              <div className="mt-10">
-                <div
-                  className="
-                    relative rounded-2xl bg-white/80 dark:bg-gray-900/70 backdrop-blur
-                    ring-1 ring-gray-200 dark:ring-gray-800 px-3 py-3 md:px-4 md:py-4 shadow-sm
-                    before:absolute before:inset-x-4 before:-top-px before:h-px
-                    before:bg-gradient-to-r before:from-transparent before:via-blue-300 before:to-transparent
-                    dark:before:via-blue-700
-                  "
-                  aria-label="Chapter navigation"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <Button
-                      variant="outline"
-                      className="group min-w-[9rem] md:min-w-[10rem] shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                      disabled={chapter <= 1 || loading}
-                      aria-disabled={chapter <= 1 || loading}
-                      title="Previous chapter (←)"
-                      onClick={() => {
-                        if (chapter > 1) props.onNavigate(book, chapter - 1);
-                      }}
-                    >
-                      <ChevronLeft className="w-4 h-4 mr-2 transition-transform group-hover:-translate-x-0.5" />
-                      Previous
-                    </Button>
-
-                    <div className="hidden md:block text-xs text-gray-500 dark:text-gray-400 select-none">
-                      {book} • Chapter {chapter}
-                    </div>
-
-                    <Button
-                      variant="default"
-                      className="group min-w-[9rem] md:min-w-[10rem] shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                      disabled={!hasNext || loading}
-                      aria-disabled={!hasNext || loading}
-                      title="Next chapter (→)"
-                      onClick={() => {
-                        if (hasNext) props.onNavigate(book, chapter + 1);
-                      }}
-                    >
-                      Next
-                      <ChevronRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-0.5" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
             </>
-          ) : !loading && !error ? (
-            <div className="text-center py-8 text-gray-500">
-              No verses found for this chapter.
-            </div>
-          ) : null}
+          ) : (
+            <p className="text-center text-gray-500 dark:text-gray-400 py-8">
+              {error ? error : "No verses found."}
+            </p>
+          )}
         </CardContent>
       </Card>
-
-      {selectedVerse && (
-        <Card className="border-2 border-blue-200 dark:border-blue-800">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-blue-800 dark:text-blue-200">
-              <StickyNote className="w-5 h-5" />
-              Add Note to {book} {chapter}:{selectedVerse}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Textarea
-              placeholder="Write your thoughts, reflections, or study notes here..."
-              value={noteText}
-              onChange={(e) => setNoteText(e.target.value)}
-              rows={4}
-              className="resize-none"
-            />
-            <div className="flex gap-2">
-              <Button onClick={saveNote} disabled={!noteText.trim()}>
-                Save Note
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setSelectedVerse(null);
-                  setNoteText('');
-                }}
-              >
-                Cancel
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

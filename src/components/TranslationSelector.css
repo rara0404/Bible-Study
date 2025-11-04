@@ -1,19 +1,36 @@
-/* Limit and style the actual Radix Select viewport so it scrolls internally */
 .ts-content [data-radix-select-viewport] {
-  max-height: 20rem;          /* ~320px */
+  max-height: 20rem;          
   overflow-y: auto;
   overscroll-behavior: contain;
-  /* scrollbar-width and scrollbar-color are applied only when supported; WebKit rules below act as fallback */
 }
 
 @supports (scrollbar-width: thin) {
   .ts-content [data-radix-select-viewport] {
     scrollbar-width: thin;
     scrollbar-color: rgba(100,116,139,.5) transparent;
+    }
+    
+    .ts-scroll::-webkit-scrollbar { width: 10px; }
+    .ts-scroll::-webkit-scrollbar-track { background: transparent; }
+    .ts-scroll::-webkit-scrollbar-thumb {
+      background-color: rgba(100,116,139,.45);
+      border-radius: 8px;
+    }
+    .ts-scroll:hover::-webkit-scrollbar-thumb {
+      background-color: rgba(59,130,246,.55); 
+  }
+  
+  .ts-scroll::-webkit-scrollbar { width: 10px; }
+  .ts-scroll::-webkit-scrollbar-track { background: transparent; }
+  .ts-scroll::-webkit-scrollbar-thumb {
+    background-color: rgba(100,116,139,.45);
+    border-radius: 8px;
+  }
+  .ts-scroll:hover::-webkit-scrollbar-thumb {
+    background-color: rgba(59,130,246,.55); 
   }
 }
 
-/* WebKit scrollbar styling */
 .ts-content [data-radix-select-viewport]::-webkit-scrollbar { width: 10px; }
 .ts-content [data-radix-select-viewport]::-webkit-scrollbar-track { background: transparent; }
 .ts-content [data-radix-select-viewport]::-webkit-scrollbar-thumb {
@@ -24,18 +41,18 @@
   background-color: rgba(59,130,246,.55);
 }
 
-/* Scroll container for the dropdown list */
 .ts-scroll {
-  max-height: 20rem;           /* ~320px */
+  max-height: 20rem;           
   overflow-y: auto;
   overscroll-behavior: contain;
-  /* Remove smooth to prevent auto-drift */
-  /* scroll-behavior: smooth; */
-  scrollbar-width: thin;       /* Firefox */
-  scrollbar-color: rgba(100,116,139,.5) transparent;
 }
 
-/* WebKit scrollbars */
+@supports (scrollbar-width: thin) {
+  .ts-scroll {
+    scrollbar-width: thin;
+  }
+}
+
 .ts-scroll::-webkit-scrollbar { width: 10px; }
 .ts-scroll::-webkit-scrollbar-track { background: transparent; }
 .ts-scroll::-webkit-scrollbar-thumb {
@@ -43,5 +60,5 @@
   border-radius: 8px;
 }
 .ts-scroll:hover::-webkit-scrollbar-thumb {
-  background-color: rgba(59,130,246,.55); /* blue on hover */
+  background-color: rgba(59,130,246,.55); 
 }
