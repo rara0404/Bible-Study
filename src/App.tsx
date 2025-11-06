@@ -99,13 +99,13 @@ export default function App() {
                       className="fixed inset-0 z-40"
                       onClick={() => setIsNavOpen(false)}
                     />
-                    <div className="absolute mt-2 z-50 w-56 h-64 rounded-xl bg-white shadow-xl menu-align">
-                      <ul className="py-4 px-2">
+                    <div className="absolute right-0 mt-3 z-50 w-40 rounded-xl bg-white border border-gray-100 shadow-xl">
+                      <ul className="py-2 px-1">
                         {navigationItems.map(item => (
                           <li key={item.id}>
                             <button
-                              className={`w-full flex items-center gap-3 px-3 py-3 text-base text-gray-800 hover:bg-gray-100 rounded-xl ${
-                                viewMode === item.id ? "bg-gray-100 font-bold" : ""
+                              className={`w-full flex items-center gap-3 px-3 py-3 text-base text-gray-800 hover:bg-gray-100 rounded-xl transition-all ${
+                                viewMode === item.id ? "bg-gray-100 font-semibold" : ""
                               }`}
                               onClick={() => {
                                 if (item.id === 'read') {
@@ -145,10 +145,10 @@ export default function App() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-4 py-8">
+      <main className="max-w-6xl mx-auto px-4 py-2">
         {viewMode === 'home' && (
           <div className="space-y-6">
-          <Card className="relative overflow-hidden rounded-3xl shadow-xl border-0">
+          <Card className="relative overflow-hidden shadow-xl border-0">
             <CardContent className="p-0">
               <ImageWithFallback
                 src="https://images.unsplash.com/photo-1759149784774-d113f3258cdc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxvcGVuJTIwYmlibGUlMjBwZWFjZWZ1bCUyMHJlYWRpbmd8ZW58MXx8fHwxNzU5MjAwMTgwfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
@@ -156,17 +156,17 @@ export default function App() {
                 className="absolute inset-0 w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-r from-blue-900/70 to-purple-900/70" />
-              <div className="relative z-10 flex flex-col items-center justify-center h-48 md:h-64 lg:h-72 text-center px-4">
-                <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">
+              <div className="relative z-10 flex flex-col items-center justify-center h-48 md:h-60 lg:h-72 align-items-center">
+                <h2 className="text-3xl md:text-4xl font-bold text-white">
                   Welcome to Bible Study
                 </h2>
-                <p className="text-lg md:text-xl mb-6 opacity-90 text-white">
+                <p className="text-lg md:text-xl mb-3 opacity-90 text-white">
                   Discover God's word through daily reading and reflection
                 </p>
                 <Button
                   size="lg"
                   onClick={() => setViewMode('books')}
-                  className="bg-white text-blue-900 hover:bg-gray-100"
+                  className="bg-white text-blue-900 hover:bg-gray-100 "
                 >
                   Start Reading
                 </Button>
