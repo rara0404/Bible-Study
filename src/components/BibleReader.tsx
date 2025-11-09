@@ -411,6 +411,35 @@ export function BibleReader(props: BibleReaderProps) {
                   </p>
                 ))}
               </div>
+
+              {/* Bottom navigation: Previous / Next (balanced spacing with header) */}
+              <div className="mt-10 pt-6 border-t flex flex-wrap items-center justify-between gap-4 px-0 md:px-1">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (!loading && chapter > 1) props.onNavigate(book, chapter - 1);
+                  }}
+                  disabled={loading || chapter <= 1}
+                  aria-label="Previous chapter"
+                  className="min-w-40 h-11"
+                >
+                  <ChevronLeft className="mr-2 h-4 w-4" />
+                  Previous
+                </Button>
+
+                <Button
+                  variant="default"
+                  onClick={() => {
+                    if (!loading && hasNext) props.onNavigate(book, chapter + 1);
+                  }}
+                  disabled={loading || !hasNext}
+                  aria-label="Next chapter"
+                  className="min-w-40 h-11"
+                >
+                  Next
+                  <ChevronRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
             </>
           ) : (
             <p className="text-center text-gray-500 dark:text-gray-400 py-8">

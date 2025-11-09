@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -10,11 +10,24 @@ interface BookSelectorProps {
   onSelectBook: (book: string, chapter: number) => void;
   currentBook?: string;
   currentChapter?: number;
+  /**
+   * If provided, the selector will open directly to the chapters list
+   * for the given book name instead of showing the books list.
+   */
+  openBookName?: string;
 }
 
-export function BookSelector({ onSelectBook, currentBook, currentChapter }: BookSelectorProps) {
+export function BookSelector({ onSelectBook, currentBook, currentChapter, openBookName }: BookSelectorProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBook, setSelectedBook] = useState<BibleBook | null>(null);
+
+  // When asked, open directly to a specific book's chapters
+  useEffect(() => {
+    if (openBookName) {
+      const book = bibleBooks.find(b => b.name === openBookName);
+      if (book) setSelectedBook(book);
+    }
+  }, [openBookName]);
 
   const filteredBooks = bibleBooks.filter(book =>
     book.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

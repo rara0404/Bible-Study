@@ -27,6 +27,8 @@ export default function App() {
   const [currentBook, setCurrentBook] = useState<string>('');
   const [currentChapter, setCurrentChapter] = useState<number>(1);
   const [selectedTranslation, setSelectedTranslation] = useState<string>('web');
+  // When navigating "Back to Chapters" from the reader, open the BookSelector directly to that book
+  const [openBookName, setOpenBookName] = useState<string | undefined>(undefined);
   // Header menu is now handled by AppMenu component
 
   const userId: string | undefined = undefined;
@@ -46,6 +48,7 @@ export default function App() {
   const handleBookSelect = (book: string, chapter: number) => {
     setCurrentBook(book);
     setCurrentChapter(chapter);
+    setOpenBookName(undefined); // clear pre-open request once a chapter is selected
     setViewMode('read');
   };
 
@@ -177,6 +180,7 @@ export default function App() {
             onSelectBook={handleBookSelect}
             currentBook={currentBook}
             currentChapter={currentChapter}
+            openBookName={openBookName}
           />
         )}
 
@@ -188,6 +192,13 @@ export default function App() {
               translation={selectedTranslation}
           
               onNavigate={(book, chapter) => {
+                // Special signal: chapter 0 means "go to this book's chapters list"
+                if (chapter === 0) {
+                  setCurrentBook(book);
+                  setOpenBookName(book);
+                  setViewMode('books');
+                  return;
+                }
                 setCurrentBook(book);
                 setCurrentChapter(chapter);
               }}

@@ -59,7 +59,7 @@ export function TranslationSelector({
   if (!showDetails) {
     return (
       <div className="flex items-center gap-3">
-        <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/30 transition-colors">
+        <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/30 transition-colors shrink-0 size-10 flex items-center justify-center">
           <Languages className="w-4 h-4 text-blue-600 dark:text-blue-400" />
         </div>
 
@@ -80,8 +80,8 @@ export function TranslationSelector({
         >
           <SelectTrigger
             aria-label="Select Bible translation"
-            // Fixed width + single-line truncation so size never changes
-            className="h-10 min-w-[18rem] max-w-[18rem] w-[18rem] overflow-hidden whitespace-nowrap text-ellipsis justify-between border border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 bg-white dark:bg-gray-800 data-[state=open]:ring-2 data-[state=open]:ring-blue-200 dark:data-[state=open]:ring-blue-900/40"
+            // Fixed, responsive widths with truncation so the button doesn’t resize
+            className="h-10 w-[12rem] sm:w-[14rem] md:w-[16rem] lg:w-[18rem] min-w-[12rem] sm:min-w-[14rem] md:min-w-[16rem] lg:min-w-[18rem] max-w-[18rem] truncate justify-between border border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 bg-white dark:bg-gray-800 data-[state=open]:ring-2 data-[state=open]:ring-blue-200 dark:data-[state=open]:ring-blue-900/40 shrink-0"
           >
             <SelectValue placeholder="Select translation" />
           </SelectTrigger>
