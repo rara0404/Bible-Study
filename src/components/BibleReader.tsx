@@ -270,7 +270,7 @@ export function BibleReader(props: BibleReaderProps) {
       </Button>
       {/* Enhanced: single unified card with sticky header */}
       <Card className="chapter-card overflow-hidden">
-        <CardHeader className="chapter-header sticky top-12 z-20 border-b bg-white/70 dark:bg-gray-900/70 backdrop-blur supports-[backdrop-filter]:bg-white/60 px-4 md:px-6 py- md:py-4">
+  <CardHeader className="chapter-header sticky top-12 z-20 border-b bg-white/70 dark:bg-gray-900/70 backdrop-blur supports-[backdrop-filter]:bg-white/60 px-4 md:px-6 py-3 md:py-4">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <div className="flex items-center gap-2">
@@ -371,8 +371,7 @@ export function BibleReader(props: BibleReaderProps) {
                           </span>
                           {isSelected && (
                             <div
-                              className="absolute left-full top-1/2 -translate-y-1/2 ml-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-lg p-6 z-50"
-                              style={{ minWidth: 320 }}
+                              className="absolute left-full top-1/2 -translate-y-1/2 ml-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-lg p-6 z-50 min-w-[320px]"
                             >
                               <div className="text-lg font-medium mb-4">{book} {chapter}:{v.verse}</div>
                               <Button
