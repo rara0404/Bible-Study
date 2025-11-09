@@ -6,6 +6,7 @@ import { BibleReader } from "./components/BibleReader";
 import { Favorites } from "./components/Favorites";
 import { Card, CardContent } from "./components/ui/card";
 import { Button } from "./components/ui/button";
+import { AppMenu, type AppView } from "./components/AppMenu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 import { ImageWithFallback } from "./components/figma/ImageWithFallback";
 import { Book, Home, BookOpen, Calendar, Flame, Moon, Sun, Heart, Menu } from "lucide-react";
@@ -26,7 +27,7 @@ export default function App() {
   const [currentBook, setCurrentBook] = useState<string>('');
   const [currentChapter, setCurrentChapter] = useState<number>(1);
   const [selectedTranslation, setSelectedTranslation] = useState<string>('web');
-  const [isNavOpen, setIsNavOpen] = useState<boolean>(false);
+  // Header menu is now handled by AppMenu component
 
   const userId: string | undefined = undefined;
 
@@ -66,7 +67,7 @@ export default function App() {
     <div className="container mx-auto space-y-6">
       {/* Header */}
       <header className="sticky top-0 z-50 backdrop-blur-md bg-white/80 dark:bg-gray-900/80 border-b border-gray-200/50 dark:border-gray-700/50">
-        <div className="max-w-6xl mx-auto px-4 py-4">
+        <div className="max-w-6xl mx-auto px-4 py-4 relative">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-md">
@@ -83,62 +84,15 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="relative">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-10 w-10"
-                  onClick={() => setIsNavOpen(v => !v)}
-                  aria-label="Open menu"
-                >
-                  <Menu className="w-5 h-5" />
-                </Button>
-                {isNavOpen && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-40"
-                      onClick={() => setIsNavOpen(false)}
-                    />
-                    <div className="absolute right-0 mt-3 z-50 w-40 rounded-xl bg-white border border-gray-100 shadow-xl">
-                      <ul className="py-2 px-1">
-                        {navigationItems.map(item => (
-                          <li key={item.id}>
-                            <button
-                              className={`w-full flex items-center gap-3 px-3 py-3 text-base text-gray-800 hover:bg-gray-100 rounded-xl transition-all ${
-                                viewMode === item.id ? "bg-gray-100 font-semibold" : ""
-                              }`}
-                              onClick={() => {
-                                if (item.id === 'read') {
-                                  resumeReading();
-                                } else {
-                                  setViewMode(item.id as ViewMode);
-                                }
-                                setIsNavOpen(false);
-                              }}
-                            >
-                              <span
-                                className={`w-8 h-8 flex items-center justify-center rounded-lg
-                                  ${viewMode === item.id
-                                    ? "bg-gradient-to-br from-blue-500 to-purple-600"
-                                    : "bg-transparent"
-                                  }`}
-                              >
-                                <item.icon
-                                  className="w-5 h-5"
-                                  color={viewMode === item.id ? "#fff" : "#6b7280"}
-                                  fill={viewMode === item.id ? "#fff" : "none"}
-                                  stroke={viewMode === item.id ? "none" : "currentColor"}
-                                />
-                              </span>
-                              {item.label}
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </>
-                )}
-              </div>
+              <AppMenu
+                onNavigate={(view: AppView) => {
+                  if (view === 'read') {
+                    resumeReading();
+                  } else {
+                    setViewMode(view as ViewMode);
+                  }
+                }}
+              />
             </div>
           </div>
         </div>

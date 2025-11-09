@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Menu as MenuIcon, Home, Book, BookOpen, Heart } from "lucide-react";
-import { Button } from "./ui/button";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -17,37 +16,39 @@ interface AppMenuProps {
 }
 
 export function AppMenu({ onNavigate }: AppMenuProps) {
+  // Controlled open state to ensure visibility while debugging
   const [open, setOpen] = useState(false);
+
   const go = (view: AppView) => {
     onNavigate?.(view);
-    setOpen(false); // close after click
+    setOpen(false); // close after navigation
   };
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          className="h-10 w-10 p-0 rounded-xl border-0 ring-0 bg-white/70 dark:bg-gray-900/60 hover:bg-white dark:hover:bg-gray-800 shadow-sm hover:shadow-md transition"
-          aria-label="Open menu"
-        >
-          <MenuIcon className="w-5 h-5 text-gray-700 dark:text-gray-200" />
-        </Button>
+      <DropdownMenuTrigger
+        data-debug="appmenu-trigger"
+        onClick={() => setOpen(o => !o)}
+        className="inline-flex items-center justify-center h-10 w-10 p-0 rounded-xl border border-transparent bg-white/80 dark:bg-gray-900/70 hover:bg-white dark:hover:bg-gray-800 shadow-sm hover:shadow-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+        aria-label="Open menu"
+      >
+        <MenuIcon className="w-5 h-5 text-gray-700 dark:text-gray-200" />
       </DropdownMenuTrigger>
 
       <DropdownMenuContent
-        align="center"
-        sideOffset={10}
-        className="w-72 md:w-80 p-2 rounded-2xl bg-white/90 dark:bg-gray-900/85 backdrop-blur-xl shadow-xl border border-gray-200/60 dark:border-gray-700/60"
+        data-debug="appmenu-content"
+        /* Keep alignment simple first; can reintroduce alignOffset after confirming visibility */
+        align="end"
+        side="bottom"
+        sideOffset={6}
+        avoidCollisions={false}
+        className="w-56 md:w-60 p-2 rounded-xl bg-white dark:bg-gray-900 shadow-lg border border-gray-200 dark:border-gray-700"
       >
-        <DropdownMenuLabel className="px-3 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
-          Menu
-        </DropdownMenuLabel>
         <DropdownMenuSeparator className="my-1" />
 
         <DropdownMenuItem
           onClick={() => go("home")}
-          className="group px-3 py-2 rounded-lg cursor-pointer focus:bg-gray-100 dark:focus:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+          className="group px-3 py-2 rounded-md cursor-pointer focus:bg-gray-100 dark:focus:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
         >
           <Home className="w-4 h-4 mr-3 text-gray-500 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
           Home
@@ -55,7 +56,7 @@ export function AppMenu({ onNavigate }: AppMenuProps) {
 
         <DropdownMenuItem
           onClick={() => go("books")}
-          className="group px-3 py-2 rounded-lg cursor-pointer focus:bg-gray-100 dark:focus:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+          className="group px-3 py-2 rounded-md cursor-pointer focus:bg-gray-100 dark:focus:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
         >
           <Book className="w-4 h-4 mr-3 text-gray-500 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
           Bible
@@ -63,7 +64,7 @@ export function AppMenu({ onNavigate }: AppMenuProps) {
 
         <DropdownMenuItem
           onClick={() => go("read")}
-          className="group px-3 py-2 rounded-lg cursor-pointer focus:bg-gray-100 dark:focus:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+          className="group px-3 py-2 rounded-md cursor-pointer focus:bg-gray-100 dark:focus:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
         >
           <BookOpen className="w-4 h-4 mr-3 text-gray-500 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
           Read
@@ -71,7 +72,7 @@ export function AppMenu({ onNavigate }: AppMenuProps) {
 
         <DropdownMenuItem
           onClick={() => go("favorites")}
-          className="group px-3 py-2 rounded-lg cursor-pointer focus:bg-gray-100 dark:focus:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+          className="group px-3 py-2 rounded-md cursor-pointer focus:bg-gray-100 dark:focus:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
         >
           <Heart className="w-4 h-4 mr-3 text-gray-500 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
           Favorites
