@@ -88,6 +88,7 @@ export default function App() {
 
             <div className="flex items-center gap-3">
               <AppMenu
+                active={viewMode as AppView}
                 onNavigate={(view: AppView) => {
                   if (view === 'read') {
                     resumeReading();
