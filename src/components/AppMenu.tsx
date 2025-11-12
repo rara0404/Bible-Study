@@ -53,7 +53,7 @@ export function AppMenu({ onNavigate, active }: AppMenuProps) {
         <DropdownMenuItem
           onClick={() => go("home")}
           className={
-            `group w-full h-10 pl-0 pr-3 rounded-md cursor-pointer transition text-[15px] flex items-center gap-0 focus:bg-gray-100 dark:focus:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800`
+            `group w-full h-10 pl-3 pr-3 rounded-md cursor-pointer transition text-[15px] flex items-center gap-0 focus:bg-gray-100 dark:focus:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800`
           }
         >
           <span className="inline-flex items-center justify-start w-10 pr-5">
@@ -75,7 +75,7 @@ export function AppMenu({ onNavigate, active }: AppMenuProps) {
         <DropdownMenuItem
           onClick={() => go("books")}
           className={
-            `group w-full h-10 pl-0 pr-3 rounded-md cursor-pointer transition text-[15px] flex items-center gap-0 focus:bg-gray-100 dark:focus:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800`
+            `group w-full h-10 pl-3 pr-3 rounded-md cursor-pointer transition text-[15px] flex items-center gap-0 focus:bg-gray-100 dark:focus:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800`
           }
         >
           <span className="inline-flex items-center justify-start w-10 pr-5">
@@ -97,7 +97,7 @@ export function AppMenu({ onNavigate, active }: AppMenuProps) {
         <DropdownMenuItem
           onClick={() => go("read")}
           className={
-            `group w-full h-10 pl-0 pr-3 rounded-md cursor-pointer transition text-[15px] flex items-center gap-0 focus:bg-gray-100 dark:focus:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800`
+            `group w-full h-10 pl-3 pr-3 rounded-md cursor-pointer transition text-[15px] flex items-center gap-0 focus:bg-gray-100 dark:focus:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800`
           }
         >
           <span className="inline-flex items-center justify-start w-10 pr-5">
@@ -119,7 +119,7 @@ export function AppMenu({ onNavigate, active }: AppMenuProps) {
         <DropdownMenuItem
           onClick={() => go("favorites")}
           className={
-            `group w-full h-10 pl-0 pr-3 rounded-md cursor-pointer transition text-[15px] flex items-center gap-0 focus:bg-gray-100 dark:focus:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800`
+            `group w-full h-10 pl-3 pr-3 rounded-md cursor-pointer transition text-[15px] flex items-center gap-0 focus:bg-gray-100 dark:focus:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800`
           }
         >
           <span className="inline-flex items-center justify-start w-10 pr-5">

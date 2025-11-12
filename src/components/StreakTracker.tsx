@@ -3,7 +3,7 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Calendar, Flame, Star, Target } from "lucide-react";
 import { useState, useEffect } from "react";
-import { recordReadingSession } from "../services/readingProgress";
+import { markStreakToday } from "../services/readingProgress";
 
 interface StreakData {
   currentStreak: number;
@@ -40,7 +40,7 @@ export function StreakTracker() {
     }
   }, []);
 
-  const markTodayAsRead = () => {
+  const markTodayAsRead = async () => {
     // Local update
     setStreakData(prev => {
       const today = new Date().toDateString();
@@ -55,9 +55,8 @@ export function StreakTracker() {
       localStorage.setItem('bibleStreakData', JSON.stringify(newData));
       return newData;
     });
-
-    // Backend record against a neutral placeholder (e.g., Psalms 1) if no specific chapter context
-    recordReadingSession({ book: 'Psalms', chapter: 1, verses_read: 1, duration_minutes: 0 });
+    // Best-effort backend update
+    try { await markStreakToday(); } catch {/* ignore */}
   };
 
   const isReadToday = streakData.lastReadDate === new Date().toDateString();

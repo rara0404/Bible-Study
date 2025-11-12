@@ -9,7 +9,6 @@ Features
 -Reading Streaks: Track your daily reading habits and maintain streaks
 -Favorites: Save and organize your favorite verses
 -Multiple Translations: Support for different Bible translations
--Dark/Light Mode: Toggle between themes for comfortable reading
 -Responsive Design: Works seamlessly on desktop and mobile devices
 
 Tech Stack

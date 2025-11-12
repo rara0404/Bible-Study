@@ -6,12 +6,14 @@ import { Input } from "./ui/input";
 import { Heart, BookOpen, Trash2, Search } from "lucide-react";
 
 interface FavoriteVerse {
+  id?: number;
   book: string;
   chapter: number;
   verse: number;
   text: string;
   translation: string;
-  dateAdded: string;
+  created_at?: string;
+  dateAdded?: string; // legacy local key
 }
 
 interface FavoritesProps {
@@ -23,13 +25,32 @@ export function Favorites({ onNavigateToVerse }: FavoritesProps) {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    const savedFavorites = localStorage.getItem('bibleFavorites');
-    if (savedFavorites) {
-      setFavorites(JSON.parse(savedFavorites));
-    }
+    const load = async () => {
+      try {
+        const res = await fetch('/api/favorite-verses?user_id=1');
+        if (res.ok) {
+          const data = await res.json();
+          setFavorites(data);
+          return;
+        }
+      } catch {/* ignore */}
+      const saved = localStorage.getItem('bibleFavorites');
+      if (saved) setFavorites(JSON.parse(saved));
+    };
+    load();
   }, []);
 
-  const removeFavorite = (favorite: FavoriteVerse) => {
+  const removeFavorite = async (favorite: FavoriteVerse) => {
+    const params = new URLSearchParams({
+      user_id: '1',
+      book: favorite.book,
+      chapter: favorite.chapter.toString(),
+      verse: favorite.verse.toString(),
+      translation: favorite.translation
+    });
+    try {
+      await fetch(`/api/favorite-verses?${params.toString()}`, { method: 'DELETE' });
+    } catch {/* ignore */}
     const updatedFavorites = favorites.filter((f: FavoriteVerse) => 
       !(f.book === favorite.book && f.chapter === favorite.chapter && f.verse === favorite.verse && f.translation === favorite.translation)
     );
@@ -52,7 +73,8 @@ export function Favorites({ onNavigateToVerse }: FavoritesProps) {
     return groups;
   }, {});
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '';
     return new Date(dateString).toLocaleDateString();
   };
 
@@ -132,9 +154,9 @@ export function Favorites({ onNavigateToVerse }: FavoritesProps) {
                               <span className="font-medium">
                                 {favorite.translation.toUpperCase()}
                               </span>
-                              <span>
-                                Added {formatDate(favorite.dateAdded)}
-                              </span>
+                              {favorite.created_at || favorite.dateAdded ? (
+                                <span>Added {formatDate(favorite.created_at || favorite.dateAdded)}</span>
+                              ) : null}
                             </div>
                             <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                               {onNavigateToVerse && (

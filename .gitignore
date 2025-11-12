@@ -1,2 +1,28 @@
-node_modules
-node_modules
+# Node
+node_modules/
+build/
+dist/
+coverage/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Local DB
+bible_study.db
+.bible_study.db
+
+# Env
+.env
+
+# Logs
+*.log
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Cache
+.cache/
