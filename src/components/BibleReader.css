@@ -52,3 +52,35 @@
   /* Tailwind handles sticky + backdrop; this is just a safe min-height for balance */
   min-height: 64px;
 }
+
+/* Landscape note card layout */
+/* Compact version */
+.verse-note-card {
+  width: min(88vw, 560px);
+  padding: 18px;
+}
+
+/* Remove grid in compact mode; fallback vertical stack */
+.verse-note-grid {
+  display: block;
+}
+
+.verse-note-textarea {
+  height: 160px;
+}
+
+.verse-note-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+/* Utility to disable hover changes */
+.no-hover:hover {
+  background-color: inherit !important;
+  color: inherit !important;
+  filter: none !important;
+  opacity: 1 !important;
+  box-shadow: none !important;
+  border-color: inherit !important;
+}

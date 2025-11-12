@@ -134,6 +134,26 @@ def init_db():
     conn.commit()
     conn.close()
 
+    # Add table for per-verse notes if it doesn't exist yet
+    conn = sqlite3.connect(DATABASE)
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS verse_notes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER DEFAULT 1,
+            book TEXT NOT NULL,
+            chapter INTEGER NOT NULL,
+            verse INTEGER NOT NULL,
+            note TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(user_id, book, chapter, verse),
+            FOREIGN KEY (user_id) REFERENCES users (id)
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
 def get_db_connection():
     """Get database connection"""
     conn = sqlite3.connect(DATABASE)
@@ -689,3 +709,66 @@ def get_daily_verse():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, port=5000)
+
+# Verse notes CRUD
+@app.route('/api/verse-notes', methods=['GET', 'POST', 'DELETE'])
+def verse_notes_handler():
+    user_id = int(request.args.get('user_id', request.json.get('user_id') if request.is_json else 1) if request.method != 'POST' else (request.json.get('user_id', 1) if request.is_json else 1))
+
+    if request.method == 'GET':
+        book = request.args.get('book')
+        chapter = request.args.get('chapter', type=int)
+        conn = get_db_connection()
+        if book and chapter is not None:
+            rows = conn.execute('''
+                SELECT book, chapter, verse, note, created_at, updated_at
+                FROM verse_notes
+                WHERE user_id = ? AND book = ? AND chapter = ?
+                ORDER BY verse ASC
+            ''', (user_id, book, chapter)).fetchall()
+        else:
+            rows = conn.execute('''
+                SELECT book, chapter, verse, note, created_at, updated_at
+                FROM verse_notes
+                WHERE user_id = ?
+                ORDER BY created_at DESC
+            ''', (user_id,)).fetchall()
+        conn.close()
+        return jsonify([dict(r) for r in rows])
+
+    if request.method == 'POST':
+        if not request.is_json:
+            return jsonify({'error': 'JSON body required'}), 400
+        data = request.get_json()
+        book = data.get('book')
+        chapter = data.get('chapter')
+        verse = data.get('verse')
+        note = data.get('note', '')
+        if not (book and isinstance(chapter, int) and isinstance(verse, int) and isinstance(note, str)):
+            return jsonify({'error': 'book, chapter, verse, and note are required'}), 400
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute('''
+            INSERT INTO verse_notes (user_id, book, chapter, verse, note)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(user_id, book, chapter, verse)
+            DO UPDATE SET note = excluded.note, updated_at = CURRENT_TIMESTAMP
+        ''', (user_id, book, chapter, verse, note))
+        conn.commit()
+        conn.close()
+        return jsonify({'message': 'Note saved'})
+
+    # DELETE
+    if request.method == 'DELETE':
+        book = request.args.get('book')
+        chapter = request.args.get('chapter', type=int)
+        verse = request.args.get('verse', type=int)
+        if not (book and chapter is not None and verse is not None):
+            return jsonify({'error': 'book, chapter, and verse are required'}), 400
+        conn = get_db_connection()
+        conn.execute('''
+            DELETE FROM verse_notes WHERE user_id = ? AND book = ? AND chapter = ? AND verse = ?
+        ''', (user_id, book, chapter, verse))
+        conn.commit()
+        conn.close()
+        return jsonify({'message': 'Note deleted'})

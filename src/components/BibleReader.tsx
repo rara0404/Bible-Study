@@ -7,9 +7,9 @@ import { Textarea } from "./ui/textarea";
 import { Alert, AlertDescription } from "./ui/alert";
 import { Skeleton } from "./ui/skeleton";
 import { getChapter, getBookId, BibleApiError } from '../services/bibleApi';
-import { StickyNote, AlertCircle, Heart, ChevronLeft, ChevronRight } from "lucide-react";
+import { StickyNote, AlertCircle, Heart, ChevronLeft, ChevronRight, X } from "lucide-react";
 import "./BibleReader.css";
-import { saveLastReading, recordReadingSession } from "../services/readingProgress";
+import { saveLastReading, recordReadingSession, saveVerseNote } from "../services/readingProgress";
 import React from "react";
 import { TranslationSelector } from "./TranslationSelector";
 
@@ -175,16 +175,24 @@ export function BibleReader(props: BibleReaderProps) {
     return () => { cancelled = true; };
   }, [book, chapter, translation]);
 
-  const saveNote = () => {
-    if (selectedVerse && noteText.trim()) {
-      const newNote: Note = { book, chapter, verse: selectedVerse, note: noteText.trim() };
-      const updatedNotes = notes.filter(n => !(n.book === book && n.chapter === chapter && n.verse === selectedVerse));
-      updatedNotes.push(newNote);
-      setNotes(updatedNotes);
-      localStorage.setItem('bibleNotes', JSON.stringify(updatedNotes));
-      setNoteText('');
-      setSelectedVerse(null);
+  const saveNote = async () => {
+    if (!selectedVerse) return;
+    const trimmed = noteText.trim();
+    if (!trimmed) {
+      // Keep behavior simple: do nothing if empty (could also delete existing note)
+      return;
     }
+    const newNote: Note = { book, chapter, verse: selectedVerse, note: trimmed };
+    const updatedNotes = notes.filter(n => !(n.book === book && n.chapter === chapter && n.verse === selectedVerse));
+    updatedNotes.push(newNote);
+    setNotes(updatedNotes);
+    localStorage.setItem('bibleNotes', JSON.stringify(updatedNotes));
+
+    // Persist to backend database (best-effort)
+    await saveVerseNote({ book, chapter, verse: selectedVerse, note: trimmed, userId });
+
+    setNoteText('');
+    setSelectedVerse(null);
   };
 
   const deleteNote = (verse: number) => {
@@ -268,8 +276,8 @@ export function BibleReader(props: BibleReaderProps) {
       >
         ← Back to Chapters
       </Button>
-      {/* Enhanced: single unified card with sticky header */}
-      <Card className="chapter-card overflow-hidden">
+  {/* Enhanced: single unified card with sticky header */}
+  <Card className="chapter-card">
   <CardHeader className="chapter-header sticky top-12 z-20 border-b bg-white/70 dark:bg-gray-900/70 backdrop-blur supports-[backdrop-filter]:bg-white/60 px-4 md:px-6 py-3 md:py-4">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
@@ -354,57 +362,73 @@ export function BibleReader(props: BibleReaderProps) {
             <>
               {/* Paragraph mode: smaller font, verses inline */}
               <div className="space-y-5 text-[15px] sm:text-[16px] leading-7 text-gray-900 dark:text-gray-100">
-                {groupVersesIntoParagraphs(verses).map((para, idx) => (
+                    {groupVersesIntoParagraphs(verses).map((para, idx) => (
                   <p key={idx} className="relative selection:bg-blue-100/70 dark:selection:bg-blue-900/40">
                     {para.map(v => {
                       const isSelected = selectedVerse === v.verse;
                       return (
                         <span key={v.verse} className="relative inline">
+                          {/* Anchor at verse number for card positioning */}
+                          <span className="relative inline-block align-baseline">
+                            <sup className="mr-1 text-[10px] align-super text-gray-500">{v.verse}</sup>
+                            {isSelected && (
+                              <div
+                                className="absolute left-0 top-full mt-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-lg z-50 verse-note-card"
+                                role="dialog"
+                                aria-label={`Notes for ${book} ${chapter}:${v.verse}`}
+                              >
+                                <div className="flex items-center justify-between mb-4">
+                                  <div className="text-base sm:text-lg font-semibold">{book} {chapter}:{v.verse}</div>
+                                  {/* Close card */}
+                                  <button
+                                    aria-label="Close notes"
+                                    className="ml-3 inline-flex h-6 w-6 items-center justify-center rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+                                    onClick={(e) => { e.stopPropagation(); setSelectedVerse(null); setNoteText(''); }}
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </button>
+                                </div>
+                                <div className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Notes</div>
+                                <div className="verse-note-grid">
+                                  <Textarea
+                                    id="note-textarea"
+                                    placeholder="Add a note about this verse..."
+                                    value={noteText}
+                                    onChange={e => setNoteText(e.target.value)}
+                                    className="w-full bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 focus-visible:ring-2 focus-visible:ring-blue-500 verse-note-textarea"
+                                    autoFocus
+                                  />
+                                                            <div className="verse-note-footer w-full">
+                                                              <button
+                                                                type="button"
+                                                                className="inline-flex items-center justify-center rounded-md px-6 h-10 bg-white text-black border-2 border-black no-hover transition-none"
+                                                                onClick={(e) => { e.stopPropagation(); void saveNote(); }}
+                                                              >
+                                                                Save
+                                                              </button>
+                                                            </div>
+                                </div>
+                              </div>
+                            )}
+                          </span>
+
+                          {/* Verse text click target */}
                           <span
                             onClick={() => handleVerseClick(v.verse)}
-                            className={`cursor-pointer rounded px-0.5 transition-colors
-                              hover:bg-gray-100 dark:hover:bg-gray-800
-                              ${isSelected ? 'bg-blue-50/70 dark:bg-blue-950' : ''}`}
+                            className={`cursor-pointer rounded px-0.5 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 ${isSelected ? 'bg-blue-50/70 dark:bg-blue-950' : ''}`}
                           >
-                            <sup className="mr-1 text-[10px] align-super text-gray-500">{v.verse}</sup>
                             <span dangerouslySetInnerHTML={{ __html: italicizeQuotes(v.text) }} />
+                            {/* Heart icon only when this verse is selected */}
+                            {isSelected && (
+                              <button
+                                aria-label={isFavorite(v) ? 'Remove from favorites' : 'Add to favorites'}
+                                className={`ml-2 inline-flex items-center align-middle text-gray-400 hover:text-rose-500 transition-colors ${isFavorite(v) ? 'text-rose-500' : ''}`}
+                                onClick={(e) => { e.stopPropagation(); toggleFavorite(v); }}
+                              >
+                                <Heart className="w-4 h-4" fill={isFavorite(v) ? 'currentColor' : 'none'} />
+                              </button>
+                            )}
                           </span>
-                          {isSelected && (
-                            <div
-                              className="absolute left-full top-1/2 -translate-y-1/2 ml-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-lg p-6 z-50 min-w-[320px]"
-                            >
-                              <div className="text-lg font-medium mb-4">{book} {chapter}:{v.verse}</div>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="mb-4 flex items-center gap-2"
-                                onClick={() => {
-                                  const verseObj = verses.find(verse => verse.verse === v.verse);
-                                  if (verseObj) {
-                                    toggleFavorite(verseObj);
-                                  }
-                                }}
-                              >
-                                <Heart className="w-5 h-5" />
-                                {isFavorite(v) ? "Favorited" : "Add to Favorites"}
-                              </Button>
-                              <div className="mb-2 font-medium">Notes</div>
-                              <Textarea
-                                id="note-textarea"
-                                placeholder="Add a note about this verse..."
-                                value={noteText}
-                                onChange={e => setNoteText(e.target.value)}
-                                rows={3}
-                                className="w-full mb-2 bg-gray-50"
-                              />
-                              <Button
-                                className="w-full bg-gray-900 text-white mt-2"
-                                onClick={saveNote}
-                              >
-                                Save Note
-                              </Button>
-                            </div>
-                          )}
                         </span>
                       );
                     })}

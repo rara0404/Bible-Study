@@ -65,6 +65,27 @@ export async function recordReadingSession(params: {
   }
 }
 
+export async function saveVerseNote(params: { userId?: string; book: string; chapter: number; verse: number; note: string; }) {
+  try {
+    const res = await fetch('/api/verse-notes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: params.userId ?? 1,
+        book: params.book,
+        chapter: params.chapter,
+        verse: params.verse,
+        note: params.note,
+      }),
+    });
+    if (!res.ok) console.warn('saveVerseNote failed', res.status, await res.text());
+    return res.ok;
+  } catch (e) {
+    console.warn('saveVerseNote error', e);
+    return false;
+  }
+}
+
 export async function getFavoriteVerses(userId?: string) {
   const res = await fetch(`/api/favorite-verses?user_id=${encodeURIComponent(userId ?? '1')}`);
   if (!res.ok) return [];
