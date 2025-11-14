@@ -2,46 +2,303 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import json
 from datetime import date
+from database import (
+    init_db, get_user, get_user_by_id, create_user,
+    get_streak, update_streak,
+    add_favorite, remove_favorite, get_favorites, is_favorite,
+    add_note, update_note, delete_note, get_notes_for_verse, get_all_notes
+)
 
 app = Flask(__name__)
 CORS(app)
 
-# API Routes
-@app.route('/api/study-sessions', methods=['GET', 'POST'])
-def handle_study_sessions():
-    return jsonify({'error': 'Feature disabled. No database available.'}), 410
+# Initialize database on startup
+init_db()
 
-@app.route('/api/study-sessions/<int:session_id>', methods=['GET', 'PUT', 'DELETE'])
-def handle_single_study_session(session_id):
-    return jsonify({'error': 'Feature disabled. No database available.'}), 410
+# Authentication Routes
+@app.route('/api/login', methods=['POST'])
+def login():
+    """Authenticate user and return user_id"""
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    
+    if not username or not password:
+        return jsonify({'error': 'Username and password required'}), 400
+    
+    user = get_user(username, password)
+    
+    if not user:
+        return jsonify({'error': 'Invalid username or password'}), 401
+    
+    return jsonify({
+        'user_id': user['id'],
+        'username': user['username'],
+        'token': f'user_{user["id"]}'  # Simple token format
+    }), 200
 
-@app.route('/api/prayer-requests', methods=['GET', 'POST'])
-def handle_prayer_requests():
-    return jsonify({'error': 'Feature disabled. No database available.'}), 410
+@app.route('/api/register', methods=['POST'])
+def register():
+    """Register a new user"""
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    
+    if not username or not password:
+        return jsonify({'error': 'Username and password required'}), 400
+    
+    if create_user(username, password):
+        user = get_user(username, password)
+        return jsonify({
+            'user_id': user['id'],
+            'username': user['username'],
+            'token': f'user_{user["id"]}'
+        }), 201
+    else:
+        return jsonify({'error': 'Username already exists'}), 409
 
-@app.route('/api/prayer-requests/<int:request_id>', methods=['PUT', 'DELETE'])
-def handle_single_prayer_request(request_id):
-    return jsonify({'error': 'Feature disabled. No database available.'}), 410
+@app.route('/api/user', methods=['GET'])
+def get_current_user():
+    """Get current user info"""
+    user_id = request.args.get('user_id', type=int)
+    
+    if not user_id:
+        return jsonify({'error': 'User ID required'}), 400
+    
+    user = get_user_by_id(user_id)
+    
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    
+    return jsonify({
+        'id': user['id'],
+        'username': user['username']
+    }), 200
 
-@app.route('/api/reading-goals', methods=['GET', 'POST'])
-def handle_reading_goals():
-    return jsonify({'error': 'Feature disabled. No database available.'}), 410
+# Streak Routes
+@app.route('/api/streak', methods=['GET'])
+def get_user_reading_streak():
+    """Get user reading streak"""
+    user_id = request.args.get('user_id', type=int)
+    
+    if not user_id:
+        return jsonify({'error': 'User ID required'}), 400
+    
+    streak = get_streak(user_id)
+    
+    if not streak:
+        return jsonify({'error': 'User not found'}), 404
+    
+    return jsonify({
+        'id': streak['id'],
+        'user_id': streak['user_id'],
+        'current_streak': streak['current_streak'],
+        'longest_streak': streak['longest_streak'],
+        'last_read_date': streak['last_read_date'],
+        'total_days_read': streak['total_days_read']
+    }), 200
 
-@app.route('/api/reading-sessions', methods=['POST'])
-def record_reading():
-    return jsonify({'error': 'Feature disabled. No database available.'}), 410
+@app.route('/api/streak/update', methods=['POST'])
+def update_user_streak():
+    """Update user reading streak"""
+    user_id = request.args.get('user_id', type=int)
+    data = request.get_json()
+    
+    if not user_id:
+        return jsonify({'error': 'User ID required'}), 400
+    
+    update_streak(
+        user_id,
+        current_streak=data.get('current_streak'),
+        longest_streak=data.get('longest_streak'),
+        last_read_date=data.get('last_read_date'),
+        total_days_read=data.get('total_days_read')
+    )
+    
+    streak = get_streak(user_id)
+    return jsonify({
+        'id': streak['id'],
+        'current_streak': streak['current_streak'],
+        'longest_streak': streak['longest_streak'],
+        'last_read_date': streak['last_read_date'],
+        'total_days_read': streak['total_days_read']
+    }), 200
 
-@app.route('/api/reading-progress/weekly', methods=['GET'])
-def get_weekly_reading_progress():
-    return jsonify({'error': 'Feature disabled. No database available.'}), 410
+# Favorites Routes
+@app.route('/api/favorites', methods=['GET'])
+def get_user_favorites():
+    """Get all favorite verses for a user"""
+    user_id = request.args.get('user_id', type=int)
+    
+    if not user_id:
+        return jsonify({'error': 'User ID required'}), 400
+    
+    favorites = get_favorites(user_id)
+    
+    return jsonify({
+        'favorites': [
+            {
+                'id': fav['id'],
+                'book': fav['book'],
+                'chapter': fav['chapter'],
+                'verse': fav['verse'],
+                'translation': fav['translation'],
+                'verse_text': fav['verse_text'],
+                'created_at': fav['created_at']
+            }
+            for fav in favorites
+        ]
+    }), 200
 
-@app.route('/api/reading-streak', methods=['GET'])
-def legacy_get_user_reading_streak():
-    return jsonify({'error': 'Feature disabled. No database available.'}), 410
+@app.route('/api/favorites', methods=['POST'])
+def add_user_favorite():
+    """Add a favorite verse"""
+    user_id = request.args.get('user_id', type=int)
+    data = request.get_json()
+    
+    if not user_id:
+        return jsonify({'error': 'User ID required'}), 400
+    
+    if not all(k in data for k in ['book', 'chapter', 'verse']):
+        return jsonify({'error': 'book, chapter, and verse are required'}), 400
+    
+    success = add_favorite(
+        user_id,
+        data['book'],
+        data['chapter'],
+        data['verse'],
+        data.get('translation', 'KJV'),
+        data.get('verse_text')
+    )
+    
+    if success:
+        return jsonify({'message': 'Favorite added successfully'}), 201
+    else:
+        return jsonify({'error': 'Verse is already favorited'}), 409
 
-@app.route('/api/reading-history', methods=['GET'])
-def get_reading_history():
-    return jsonify({'error': 'Feature disabled. No database available.'}), 410
+@app.route('/api/favorites', methods=['DELETE'])
+def remove_user_favorite():
+    """Remove a favorite verse"""
+    user_id = request.args.get('user_id', type=int)
+    data = request.get_json()
+    
+    if not user_id:
+        return jsonify({'error': 'User ID required'}), 400
+    
+    if not all(k in data for k in ['book', 'chapter', 'verse']):
+        return jsonify({'error': 'book, chapter, and verse are required'}), 400
+    
+    remove_favorite(
+        user_id,
+        data['book'],
+        data['chapter'],
+        data['verse'],
+        data.get('translation', 'KJV')
+    )
+    
+    return jsonify({'message': 'Favorite removed successfully'}), 200
+
+@app.route('/api/favorites/<book>/<int:chapter>/<int:verse>', methods=['GET'])
+def check_favorite(book, chapter, verse):
+    """Check if a verse is favorited"""
+    user_id = request.args.get('user_id', type=int)
+    translation = request.args.get('translation', 'KJV')
+    
+    if not user_id:
+        return jsonify({'error': 'User ID required'}), 400
+    
+    favorited = is_favorite(user_id, book, chapter, verse, translation)
+    
+    return jsonify({'favorited': favorited}), 200
+
+# Notes Routes
+@app.route('/api/notes', methods=['GET'])
+def get_user_notes():
+    """Get all notes for a user"""
+    user_id = request.args.get('user_id', type=int)
+    
+    if not user_id:
+        return jsonify({'error': 'User ID required'}), 400
+    
+    notes = get_all_notes(user_id)
+    
+    return jsonify({
+        'notes': [
+            {
+                'id': note['id'],
+                'book': note['book'],
+                'chapter': note['chapter'],
+                'verse': note['verse'],
+                'note_text': note['note_text'],
+                'created_at': note['created_at'],
+                'updated_at': note['updated_at']
+            }
+            for note in notes
+        ]
+    }), 200
+
+@app.route('/api/notes/<book>/<int:chapter>/<int:verse>', methods=['GET'])
+def get_verse_notes(book, chapter, verse):
+    """Get notes for a specific verse"""
+    user_id = request.args.get('user_id', type=int)
+    
+    if not user_id:
+        return jsonify({'error': 'User ID required'}), 400
+    
+    notes = get_notes_for_verse(user_id, book, chapter, verse)
+    
+    return jsonify({
+        'notes': [
+            {
+                'id': note['id'],
+                'note_text': note['note_text'],
+                'created_at': note['created_at'],
+                'updated_at': note['updated_at']
+            }
+            for note in notes
+        ]
+    }), 200
+
+@app.route('/api/notes', methods=['POST'])
+def add_user_note():
+    """Add a note for a verse"""
+    user_id = request.args.get('user_id', type=int)
+    data = request.get_json()
+    
+    if not user_id:
+        return jsonify({'error': 'User ID required'}), 400
+    
+    if not all(k in data for k in ['book', 'chapter', 'verse', 'note_text']):
+        return jsonify({'error': 'book, chapter, verse, and note_text are required'}), 400
+    
+    note_id = add_note(
+        user_id,
+        data['book'],
+        data['chapter'],
+        data['verse'],
+        data['note_text']
+    )
+    
+    return jsonify({'id': note_id, 'message': 'Note added successfully'}), 201
+
+@app.route('/api/notes/<int:note_id>', methods=['PUT'])
+def update_user_note(note_id):
+    """Update a note"""
+    data = request.get_json()
+    
+    if 'note_text' not in data:
+        return jsonify({'error': 'note_text is required'}), 400
+    
+    update_note(note_id, data['note_text'])
+    
+    return jsonify({'message': 'Note updated successfully'}), 200
+
+@app.route('/api/notes/<int:note_id>', methods=['DELETE'])
+def delete_user_note(note_id):
+    """Delete a note"""
+    delete_note(note_id)
+    return jsonify({'message': 'Note deleted successfully'}), 200
+
 
 # Auto-record reading when user views a chapter
 @app.route('/api/bible/chapter/<book>/<int:chapter>', methods=['GET'])
@@ -51,16 +308,9 @@ def get_chapter_and_record(book, chapter):
     import urllib.error
 
     user_id = int(request.args.get('user_id', 1))
-    translation = request.args.get('translation', 'web')  # bible-api.com "web" maps to World English Bible
+    translation = request.args.get('translation', 'web')
 
-    # No database: do not record reading sessions in DB
-
-    # Proxy to bible-api.com parameterized chapter endpoint if available in your integration
-    # Using test-api.js pattern: https://bible-api.com/data/<translation>/<bookId>/<chapter>
-    # Book must be mapped to translation-specific ID; if you want a simple user-facing endpoint, accept bookId instead of name.
     try:
-        # Minimal example: accept a pre-mapped 3-letter ID in "book" param; otherwise add a mapping layer here.
-        # For consistency with your frontend, prefer receiving a bookId (e.g., JHN) from the client.
         url = f'https://bible-api.com/data/{translation}/{book}/{chapter}'
         with urllib.request.urlopen(url, timeout=10) as resp:
             status = resp.getcode()
@@ -73,36 +323,11 @@ def get_chapter_and_record(book, chapter):
     except Exception as e:
         return jsonify({'error': f'Failed to fetch chapter: {str(e)}'}), 500
 
-# Missing: Verse interactions (for daily verse favorites/notes)
-@app.route('/api/verse-interactions', methods=['GET', 'POST'])
-def handle_verse_interactions():
-    return jsonify({'error': 'Feature disabled. No database available.'}), 410
-
-# Favorite verses management (DB-backed)
-@app.route('/api/favorite-verses', methods=['GET', 'POST', 'DELETE'])
-def handle_favorite_verses():
-    # With no database, this feature is disabled. Frontend should use localStorage fallback.
-    return jsonify({'error': 'Favorites are disabled. No database available.'}), 410
-
-@app.route('/api/streak', methods=['GET'])
-def get_user_reading_streak():
-    # With no database, this feature is disabled. Frontend should use local fallback.
-    return jsonify({'error': 'Streaks are disabled. No database available.'}), 410
-
-@app.route('/api/streak/mark-today', methods=['POST'])
-def mark_streak_today():
-    # With no database, this feature is disabled. Frontend should use local fallback.
-    return jsonify({'error': 'Streaks are disabled. No database available.'}), 410
-
-# Missing: Daily verse of the day
 @app.route('/api/verse-of-day', methods=['GET'])
 def get_daily_verse():
     """Get the verse of the day"""
     today_str = date.today().isoformat()
-    # Notes-only backend: do not track verse interactions in DB
     
-    # You'll need to implement your verse-of-day logic here
-    # This is a placeholder response
     verse_data = {
         'book': 'John',
         'reference': 'John 3:16',
@@ -114,11 +339,6 @@ def get_daily_verse():
     }
     
     return jsonify(verse_data)
-
-@app.route('/api/verse-notes', methods=['GET', 'POST', 'DELETE'])
-def verse_notes_handler():
-    # With no database, this feature is disabled. Frontend should use localStorage fallback.
-    return jsonify({'error': 'Notes are disabled. No database available.'}), 410
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
