@@ -66,7 +66,43 @@ export function StreakTracker({ userId }: StreakTrackerProps) {
   }, [userId]);
 
   const markTodayAsRead = async () => {
-    // Local update
+    if (!userId) {
+      // Fallback local update if no user
+      setStreakData(prev => {
+        const today = new Date().toDateString();
+        const lastRead = prev.lastReadDate || prev.last_read_date || '';
+        if (lastRead === today) return prev;
+        const currentCount = (prev.currentStreak || prev.currentStreak === 0) ? prev.currentStreak : 0;
+        const longestCount = (prev.longestStreak || prev.longestStreak === 0) ? prev.longestStreak : 0;
+        const totalCount = (prev.totalDaysRead || prev.totalDaysRead === 0) ? prev.totalDaysRead : 0;
+        const newStreak = currentCount + 1;
+        const newData = {
+          current_streak: newStreak,
+          longest_streak: Math.max(longestCount, newStreak),
+          last_read_date: today,
+          total_days_read: totalCount + 1
+        };
+        localStorage.setItem('bibleStreakData', JSON.stringify(newData));
+        return newData;
+      });
+      return;
+    }
+
+    // Mark today in backend
+    try {
+      const res = await fetch(`/api/streak/update?user_id=${userId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (res.ok) {
+        const updatedStreak = await res.json();
+        setStreakData(updatedStreak);
+        localStorage.setItem('bibleStreakData', JSON.stringify(updatedStreak));
+        return;
+      }
+    } catch {/* ignore */}
+
+    // Fallback to local update if backend fails
     setStreakData(prev => {
       const today = new Date().toDateString();
       const lastRead = prev.lastReadDate || prev.last_read_date || '';
@@ -84,27 +120,17 @@ export function StreakTracker({ userId }: StreakTrackerProps) {
       localStorage.setItem('bibleStreakData', JSON.stringify(newData));
       return newData;
     });
-    
-    // Backend update if userId available
-    if (userId) {
-      try {
-        await fetch('/api/streak/update', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id: userId })
-        });
-      } catch {/* ignore */}
-    } else {
-      // Best-effort fallback
-      try { await markStreakToday(); } catch {/* ignore */}
-    }
   };
 
   const getLastReadDate = (): string => {
     return streakData.lastReadDate || streakData.last_read_date || '';
   };
 
-  const isReadToday = getLastReadDate() === new Date().toDateString();
+  const isReadToday = () => {
+    const lastRead = getLastReadDate();
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    return lastRead === today;
+  };
 
   return (
     <Card className="bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950 dark:to-red-950 border-2 border-orange-200 dark:border-orange-800">
@@ -142,7 +168,7 @@ export function StreakTracker({ userId }: StreakTrackerProps) {
           </div>
         </div>
 
-        {!isReadToday ? (
+        {!isReadToday() ? (
           <Button 
             onClick={markTodayAsRead}
             className="w-full bg-orange-500 hover:bg-orange-600 text-white"

@@ -30,6 +30,7 @@ interface BibleReaderProps {
 }
 
 interface Note {
+  id?: number;
   book: string;
   chapter: number;
   verse: number;
@@ -37,12 +38,14 @@ interface Note {
 }
 
 interface FavoriteVerse {
+  id?: number;
   book: string;
   chapter: number;
   verse: number;
   text: string;
   translation: string;
-  dateAdded: string;
+  dateAdded?: string;
+  created_at?: string;
 }
 
 interface ApiBibleVerse {
@@ -218,14 +221,44 @@ export function BibleReader(props: BibleReaderProps) {
     setNotes(updatedNotes);
     localStorage.setItem('bibleNotes', JSON.stringify(updatedNotes));
 
-    // Persist to backend database (best-effort)
-    await saveVerseNote({ book, chapter, verse: selectedVerse, note: trimmed, userId });
+    // Persist to backend database and capture the ID
+    if (userId) {
+      try {
+        const res = await fetch('/api/notes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: userId,
+            book,
+            chapter,
+            verse: selectedVerse,
+            note_text: trimmed
+          })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          // Update the note with the ID from the backend
+          newNote.id = data.id;
+          setNotes([...updatedNotes]);
+          localStorage.setItem('bibleNotes', JSON.stringify(updatedNotes));
+        }
+      } catch {/* ignore */}
+    }
 
     setNoteText('');
     setSelectedVerse(null);
   };
 
-  const deleteNote = (verse: number) => {
+  const deleteNote = async (verse: number) => {
+    const noteToDelete = notes.find(n => n.book === book && n.chapter === chapter && n.verse === verse);
+    
+    // Delete from backend if note has ID and userId is available
+    if (noteToDelete?.id && userId) {
+      try {
+        await fetch(`/api/notes/${noteToDelete.id}?user_id=${userId}`, { method: 'DELETE' });
+      } catch {/* ignore */}
+    }
+    
     const updatedNotes = notes.filter(n => !(n.book === book && n.chapter === chapter && n.verse === verse));
     setNotes(updatedNotes);
     localStorage.setItem('bibleNotes', JSON.stringify(updatedNotes));

@@ -15,6 +15,7 @@ interface BibleVerse {
 
 interface VerseOfTheDayProps {
   translation?: string;
+  userId?: number;
 }
 
 // Helper function to generate a consistent verse for each day
@@ -61,23 +62,58 @@ const popularVerses = [
   "1 peter 5:7"
 ];
 
-export function VerseOfTheDay({ translation = "web" }: VerseOfTheDayProps) {
+export function VerseOfTheDay({ translation = "web", userId }: VerseOfTheDayProps) {
   const [verse, setVerse] = useState<BibleVerse | null>(null);
   const [liked, setLiked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Store likes for Verse of the Day in a separate key
+  // Load like status from backend or localStorage
   useEffect(() => {
-    if (verse) {
+    if (verse && userId) {
+      const loadLikeStatus = async () => {
+        try {
+          const res = await fetch(`/api/verse-of-day/like?user_id=${userId}&book=${encodeURIComponent(verse.book)}&chapter=${verse.chapter}&verse=${verse.verse}&translation=${translation}`);
+          if (res.ok) {
+            const data = await res.json();
+            setLiked(data.liked);
+            return;
+          }
+        } catch {/* ignore */}
+      };
+      loadLikeStatus();
+    } else if (verse) {
+      // Fallback to localStorage
       const likeKey = `likedVerseOfTheDay_${verse.book}_${verse.chapter}_${verse.verse}_${translation}`;
       const isLiked = localStorage.getItem(likeKey) === "true";
       setLiked(isLiked);
     }
-  }, [verse, translation]);
+  }, [verse, translation, userId]);
 
-  const toggleLike = () => {
+  const toggleLike = async () => {
     if (!verse) return;
+    
+    if (userId) {
+      try {
+        const res = await fetch('/api/verse-of-day/like', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: userId,
+            book: verse.book,
+            chapter: verse.chapter,
+            verse: verse.verse,
+            translation
+          })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setLiked(data.liked);
+        }
+      } catch {/* ignore */}
+    }
+
+    // Fallback to localStorage
     const likeKey = `likedVerseOfTheDay_${verse.book}_${verse.chapter}_${verse.verse}_${translation}`;
     if (liked) {
       localStorage.removeItem(likeKey);

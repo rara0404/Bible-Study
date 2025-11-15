@@ -199,7 +199,7 @@ export default function App() {
           </Card>
             <div className="grid lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 space-y-6">
-                <VerseOfTheDay translation={selectedTranslation} />
+                <VerseOfTheDay translation={selectedTranslation} userId={userId ?? undefined} />
                 <Card>
                   <CardContent className="p-6">
                     <h3 className="text-lg font-semibold mb-4">Quick Start</h3>

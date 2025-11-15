@@ -68,6 +68,21 @@ def init_db():
         )
     ''')
     
+    # Verse of the Day likes table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS verse_of_day_likes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            book TEXT NOT NULL,
+            chapter INTEGER NOT NULL,
+            verse INTEGER NOT NULL,
+            translation TEXT DEFAULT 'web',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+            UNIQUE(user_id, book, chapter, verse, translation)
+        )
+    ''')
+    
     conn.commit()
     conn.close()
 
@@ -166,6 +181,58 @@ def update_streak(user_id: int, current_streak: int = None, longest_streak: int 
     
     conn.close()
 
+def mark_streak_today(user_id: int):
+    """Mark today as read and update streak. Returns updated streak data."""
+    from datetime import datetime, timedelta
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Get current streak data
+    cursor.execute('SELECT * FROM streaks WHERE user_id = ?', (user_id,))
+    streak = cursor.fetchone()
+    
+    if not streak:
+        conn.close()
+        return None
+    
+    today_str = datetime.now().strftime('%Y-%m-%d')
+    last_read = streak['last_read_date']
+    
+    # If already marked for today, no change
+    if last_read == today_str:
+        conn.close()
+        return streak
+    
+    # Calculate new streak
+    new_current_streak = 1
+    new_total_days = (streak['total_days_read'] or 0) + 1
+    
+    if last_read:
+        yesterday_str = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+        if last_read == yesterday_str:
+            # Streak continues
+            new_current_streak = (streak['current_streak'] or 0) + 1
+    
+    # Update longest streak if needed
+    new_longest_streak = max(streak['longest_streak'] or 0, new_current_streak)
+    
+    # Update database
+    cursor.execute('''
+        UPDATE streaks 
+        SET current_streak = ?, longest_streak = ?, last_read_date = ?, total_days_read = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE user_id = ?
+    ''', (new_current_streak, new_longest_streak, today_str, new_total_days, user_id))
+    
+    conn.commit()
+    
+    # Get updated streak
+    cursor.execute('SELECT * FROM streaks WHERE user_id = ?', (user_id,))
+    updated_streak = cursor.fetchone()
+    conn.close()
+    
+    return updated_streak
+
 # Favorites operations
 def add_favorite(user_id: int, book: str, chapter: int, verse: int, translation: str = 'KJV', verse_text: str = None):
     """Add a favorite verse."""
@@ -261,6 +328,55 @@ def verify_user_owns_note(user_id: int, note_id: int) -> bool:
     """Verify that a user owns a specific note."""
     note = get_note_by_id(note_id)
     return note is not None and note['user_id'] == user_id
+
+# Verse of the Day operations
+def toggle_verse_of_day_like(user_id: int, book: str, chapter: int, verse: int, translation: str = 'web') -> bool:
+    """Toggle like status for verse of the day. Returns new like status."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Check if already liked
+    cursor.execute('''
+        SELECT id FROM verse_of_day_likes
+        WHERE user_id = ? AND book = ? AND chapter = ? AND verse = ? AND translation = ?
+    ''', (user_id, book, chapter, verse, translation))
+    
+    existing = cursor.fetchone()
+    
+    if existing:
+        # Unlike
+        cursor.execute('''
+            DELETE FROM verse_of_day_likes
+            WHERE user_id = ? AND book = ? AND chapter = ? AND verse = ? AND translation = ?
+        ''', (user_id, book, chapter, verse, translation))
+        conn.commit()
+        conn.close()
+        return False
+    else:
+        # Like
+        try:
+            cursor.execute('''
+                INSERT INTO verse_of_day_likes (user_id, book, chapter, verse, translation)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (user_id, book, chapter, verse, translation))
+            conn.commit()
+            conn.close()
+            return True
+        except sqlite3.IntegrityError:
+            conn.close()
+            return False
+
+def is_verse_of_day_liked(user_id: int, book: str, chapter: int, verse: int, translation: str = 'web') -> bool:
+    """Check if user has liked this verse of the day."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT 1 FROM verse_of_day_likes
+        WHERE user_id = ? AND book = ? AND chapter = ? AND verse = ? AND translation = ?
+    ''', (user_id, book, chapter, verse, translation))
+    result = cursor.fetchone()
+    conn.close()
+    return result is not None
 
 def get_notes_for_verse(user_id: int, book: str, chapter: int, verse: int):
     """Get all notes for a specific verse."""

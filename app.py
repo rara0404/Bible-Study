@@ -4,10 +4,12 @@ import json
 from datetime import date
 from database import (
     init_db, get_user, get_user_by_id, create_user,
-    get_streak, update_streak,
+    get_streak, update_streak, mark_streak_today,
     add_favorite, remove_favorite, get_favorites, is_favorite,
     add_note, update_note, delete_note, get_notes_for_verse, get_all_notes,
-    get_note_by_id, verify_user_owns_note
+    get_note_by_id, verify_user_owns_note,
+    toggle_verse_of_day_like as db_toggle_verse_like, 
+    is_verse_of_day_liked as db_check_verse_like
 )
 
 app = Flask(__name__)
@@ -101,24 +103,21 @@ def get_user_reading_streak():
 
 @app.route('/api/streak/update', methods=['POST'])
 def update_user_streak():
-    """Update user reading streak"""
+    """Update user reading streak - marks today as read"""
     user_id = request.args.get('user_id', type=int)
-    data = request.get_json()
     
     if not user_id:
         return jsonify({'error': 'User ID required'}), 400
     
-    update_streak(
-        user_id,
-        current_streak=data.get('current_streak'),
-        longest_streak=data.get('longest_streak'),
-        last_read_date=data.get('last_read_date'),
-        total_days_read=data.get('total_days_read')
-    )
+    # Use the new mark_streak_today function which handles all calculations
+    streak = mark_streak_today(user_id)
     
-    streak = get_streak(user_id)
+    if not streak:
+        return jsonify({'error': 'User not found'}), 404
+    
     return jsonify({
         'id': streak['id'],
+        'user_id': streak['user_id'],
         'current_streak': streak['current_streak'],
         'longest_streak': streak['longest_streak'],
         'last_read_date': streak['last_read_date'],
@@ -316,6 +315,44 @@ def delete_user_note(note_id):
     
     delete_note(note_id)
     return jsonify({'message': 'Note deleted successfully'}), 200
+# Verse of the Day Like Routes
+@app.route('/api/verse-of-day/like', methods=['POST'])
+def toggle_verse_of_day_like_api():
+    """Toggle like status for verse of the day"""
+    user_id = request.args.get('user_id', type=int)
+    data = request.get_json()
+    
+    if not user_id:
+        return jsonify({'error': 'User ID required'}), 400
+    
+    if not all(k in data for k in ['book', 'chapter', 'verse']):
+        return jsonify({'error': 'book, chapter, and verse are required'}), 400
+    
+    liked = db_toggle_verse_like(
+        user_id,
+        data['book'],
+        data['chapter'],
+        data['verse'],
+        data.get('translation', 'web')
+    )
+    
+    return jsonify({'liked': liked}), 200
+
+@app.route('/api/verse-of-day/like', methods=['GET'])
+def check_verse_of_day_like_api():
+    """Check if user has liked this verse of the day"""
+    user_id = request.args.get('user_id', type=int)
+    book = request.args.get('book')
+    chapter = request.args.get('chapter', type=int)
+    verse = request.args.get('verse', type=int)
+    translation = request.args.get('translation', 'web')
+    
+    if not user_id or not book or not chapter or not verse:
+        return jsonify({'error': 'user_id, book, chapter, and verse are required'}), 400
+    
+    liked = db_check_verse_like(user_id, book, chapter, verse, translation)
+    
+    return jsonify({'liked': liked}), 200
 
 
 # Auto-record reading when user views a chapter
