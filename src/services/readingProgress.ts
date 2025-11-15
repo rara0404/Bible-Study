@@ -128,14 +128,17 @@ export async function deleteFavoriteVerse(params: { userId?: string; book: strin
   }
 
   try {
-    const q = new URLSearchParams({
-      user_id: params.userId,
-      book: params.book,
-      chapter: params.chapter.toString(),
-      verse: params.verse.toString(),
-      translation: (params.translation ?? 'web')
+    const res = await fetch(`/api/favorites`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: parseInt(params.userId),
+        book: params.book,
+        chapter: params.chapter,
+        verse: params.verse,
+        translation: (params.translation ?? 'web')
+      })
     });
-    const res = await fetch(`/api/favorites?${q.toString()}`, { method: 'DELETE' });
     if (res.ok) return true;
   } catch {/* ignore */}
   return false;

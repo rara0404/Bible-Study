@@ -279,14 +279,17 @@ export function BibleReader(props: BibleReaderProps) {
       // Call API to remove favorite if userId available
       if (userId) {
         try {
-          const params = new URLSearchParams({
-            user_id: userId.toString(),
-            book,
-            chapter: chapter.toString(),
-            verse: verse.verse.toString(),
-            translation: translation || 'web'
+          await fetch(`/api/favorites`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              user_id: userId,
+              book,
+              chapter,
+              verse: verse.verse,
+              translation: translation || 'web'
+            })
           });
-          await fetch(`/api/favorites?${params.toString()}`, { method: 'DELETE' });
         } catch {/* ignore */}
       }
     } else {

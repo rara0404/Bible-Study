@@ -180,21 +180,27 @@ def add_user_favorite():
 def remove_user_favorite():
     """Remove a favorite verse"""
     user_id = request.args.get('user_id', type=int)
-    data = request.get_json()
+    
+    # Get parameters from either JSON body or query string
+    if request.is_json:
+        data = request.get_json()
+        book = data.get('book')
+        chapter = data.get('chapter')
+        verse = data.get('verse')
+        translation = data.get('translation', 'KJV')
+    else:
+        book = request.args.get('book')
+        chapter = request.args.get('chapter', type=int)
+        verse = request.args.get('verse', type=int)
+        translation = request.args.get('translation', 'KJV')
     
     if not user_id:
         return jsonify({'error': 'User ID required'}), 400
     
-    if not all(k in data for k in ['book', 'chapter', 'verse']):
+    if not all([book, chapter, verse]):
         return jsonify({'error': 'book, chapter, and verse are required'}), 400
     
-    remove_favorite(
-        user_id,
-        data['book'],
-        data['chapter'],
-        data['verse'],
-        data.get('translation', 'KJV')
-    )
+    remove_favorite(user_id, book, chapter, verse, translation)
     
     return jsonify({'message': 'Favorite removed successfully'}), 200
 

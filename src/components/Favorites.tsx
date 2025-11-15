@@ -48,15 +48,18 @@ export function Favorites({ userId, onNavigateToVerse }: FavoritesProps) {
 
   const removeFavorite = async (favorite: FavoriteVerse) => {
     if (userId) {
-      const params = new URLSearchParams({
-        user_id: userId.toString(),
-        book: favorite.book,
-        chapter: favorite.chapter.toString(),
-        verse: favorite.verse.toString(),
-        translation: favorite.translation
-      });
       try {
-        await fetch(`/api/favorites?${params.toString()}`, { method: 'DELETE' });
+        await fetch(`/api/favorites`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: userId,
+            book: favorite.book,
+            chapter: favorite.chapter,
+            verse: favorite.verse,
+            translation: favorite.translation
+          })
+        });
       } catch {/* ignore */}
     }
     
