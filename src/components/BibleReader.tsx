@@ -530,7 +530,23 @@ export function BibleReader(props: BibleReaderProps) {
                                     <X className="h-4 w-4" />
                                   </button>
                                 </div>
-                                <div className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Notes</div>
+
+                                {/* Display saved notes for this verse */}
+                                {getVerseNote(v.verse) && (
+                                  <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                                    <div className="text-xs font-semibold text-blue-700 dark:text-blue-300 mb-2">SAVED NOTE</div>
+                                    <div className="text-sm text-gray-800 dark:text-gray-200 mb-3 whitespace-pre-wrap">{getVerseNote(v.verse)?.note}</div>
+                                    <button
+                                      type="button"
+                                      className="inline-flex items-center justify-center rounded-md px-3 h-8 bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 border border-red-300 dark:border-red-700 hover:bg-red-200 dark:hover:bg-red-900 text-xs font-medium transition-colors"
+                                      onClick={(e) => { e.stopPropagation(); deleteNote(v.verse); setNoteText(''); }}
+                                    >
+                                      Delete Note
+                                    </button>
+                                  </div>
+                                )}
+
+                                <div className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Add New Note</div>
                                 <div className="verse-note-grid">
                                   <Textarea
                                     id="note-textarea"
