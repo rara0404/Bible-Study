@@ -173,9 +173,9 @@ export function BibleReader(props: BibleReaderProps) {
 
           await saveLastReading(
             { book, chapter, translation: translation || 'web' },
-            userId
+            userId ? String(userId) : undefined
           );
-          recordReadingSession({ userId, book, chapter });
+          recordReadingSession({ userId: userId ? String(userId) : undefined, book, chapter });
         } else {
           setError('No verses found for this chapter.');
         }
@@ -383,7 +383,7 @@ export function BibleReader(props: BibleReaderProps) {
       const existingNote = getVerseNote(verse);
       setNoteText(existingNote?.note || '');
     }
-    await saveLastReading({ book, chapter, translation: translation || 'web', verse }, userId);
+    await saveLastReading({ book, chapter, translation: translation || 'web', verse }, userId ? String(userId) : undefined);
   };
 
   // Smooth-scroll to the top of the reader when the chapter changes

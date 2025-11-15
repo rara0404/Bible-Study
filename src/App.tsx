@@ -73,7 +73,7 @@ export default function App() {
   };
 
   const resumeReading = async () => {
-    const last = await getLastReading(userId);
+    const last = await getLastReading(userId ? String(userId) : undefined);
     if (last?.book && last?.chapter) {
       setCurrentBook(last.book);
       setCurrentChapter(last.chapter);
