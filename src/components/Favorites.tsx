@@ -10,10 +10,11 @@ interface FavoriteVerse {
   book: string;
   chapter: number;
   verse: number;
-  text: string;
-  translation: string;
+  text?: string;
+  verse_text?: string;
+  translation?: string;
   created_at?: string;
-  dateAdded?: string; // legacy local key
+  dateAdded?: string;
 }
 
 interface FavoritesProps {
@@ -64,17 +65,18 @@ export function Favorites({ userId, onNavigateToVerse }: FavoritesProps) {
     }
     
     const updatedFavorites = favorites.filter((f: FavoriteVerse) => 
-      !(f.book === favorite.book && f.chapter === favorite.chapter && f.verse === favorite.verse && f.translation === favorite.translation)
+      !(f.book === favorite.book && f.chapter === favorite.chapter && f.verse === favorite.verse && (f.translation || 'web') === (favorite.translation || 'web'))
     );
     setFavorites(updatedFavorites);
     localStorage.setItem('bibleFavorites', JSON.stringify(updatedFavorites));
   };
 
   const filteredFavorites = favorites
-    .filter((favorite: FavoriteVerse) => 
-      favorite.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      favorite.book.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    .filter((favorite: FavoriteVerse) => {
+      const verseText = favorite.verse_text || favorite.text || '';
+      return verseText.toLowerCase().includes(searchTerm.toLowerCase()) ||
+             favorite.book.toLowerCase().includes(searchTerm.toLowerCase());
+    });
 
   const groupedFavorites = filteredFavorites.reduce((groups: Record<string, FavoriteVerse[]>, favorite) => {
     const key = `${favorite.book} ${favorite.chapter}`;
@@ -159,12 +161,12 @@ export function Favorites({ userId, onNavigateToVerse }: FavoritesProps) {
                         </Badge>
                         <div className="flex-1">
                           <p className="leading-relaxed text-gray-900 dark:text-gray-100 mb-2">
-                            {favorite.text}
+                            {favorite.verse_text || favorite.text}
                           </p>
                           <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
                             <div className="flex items-center gap-3">
                               <span className="font-medium">
-                                {favorite.translation.toUpperCase()}
+                                {(favorite.translation || 'WEB').toUpperCase()}
                               </span>
                               {favorite.created_at || favorite.dateAdded ? (
                                 <span>Added {formatDate(favorite.created_at || favorite.dateAdded)}</span>
