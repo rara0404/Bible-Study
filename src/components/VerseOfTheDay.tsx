@@ -76,10 +76,19 @@ export function VerseOfTheDay({ translation = "web", userId }: VerseOfTheDayProp
           const res = await fetch(`/api/verse-of-day/like?user_id=${userId}&book=${encodeURIComponent(verse.book)}&chapter=${verse.chapter}&verse=${verse.verse}&translation=${translation}`);
           if (res.ok) {
             const data = await res.json();
-            setLiked(data.liked);
+            setLiked(data.liked || false);
+            // Sync to localStorage for offline access
+            const likeKey = `likedVerseOfTheDay_${verse.book}_${verse.chapter}_${verse.verse}_${translation}`;
+            if (data.liked) {
+              localStorage.setItem(likeKey, "true");
+            } else {
+              localStorage.removeItem(likeKey);
+            }
             return;
           }
-        } catch {/* ignore */}
+        } catch (err) {
+          console.error('Failed to load verse-of-day like status from server:', err);
+        }
       };
       loadLikeStatus();
     } else if (verse) {
@@ -93,34 +102,44 @@ export function VerseOfTheDay({ translation = "web", userId }: VerseOfTheDayProp
   const toggleLike = async () => {
     if (!verse) return;
     
+    // Update state and localStorage immediately for instant UI feedback
+    const newLikedState = !liked;
+    setLiked(newLikedState);
+    
+    // Sync to localStorage
+    const likeKey = `likedVerseOfTheDay_${verse.book}_${verse.chapter}_${verse.verse}_${translation}`;
+    if (newLikedState) {
+      localStorage.setItem(likeKey, "true");
+    } else {
+      localStorage.removeItem(likeKey);
+    }
+
+    // Persist to backend if userId available
     if (userId) {
       try {
-        const res = await fetch('/api/verse-of-day/like', {
+        console.log('[VerseOfTheDay] Toggling like:', { userId, book: verse.book, chapter: verse.chapter, verse: verse.verse, translation });
+        const res = await fetch(`/api/verse-of-day/like?user_id=${userId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            user_id: userId,
             book: verse.book,
             chapter: verse.chapter,
             verse: verse.verse,
             translation
           })
         });
+        console.log('[VerseOfTheDay] Toggle like response:', res.status, res.statusText);
         if (res.ok) {
           const data = await res.json();
-          setLiked(data.liked);
+          setLiked(data.liked || false);
+        } else {
+          const errorData = await res.json();
+          console.error('[VerseOfTheDay] Toggle like error:', errorData);
         }
-      } catch {/* ignore */}
-    }
-
-    // Fallback to localStorage
-    const likeKey = `likedVerseOfTheDay_${verse.book}_${verse.chapter}_${verse.verse}_${translation}`;
-    if (liked) {
-      localStorage.removeItem(likeKey);
-      setLiked(false);
-    } else {
-      localStorage.setItem(likeKey, "true");
-      setLiked(true);
+      } catch (err) {
+        console.error('[VerseOfTheDay] Failed to save verse-of-day like to server:', err);
+        // Like status already saved to localStorage, so it persists
+      }
     }
   };
 

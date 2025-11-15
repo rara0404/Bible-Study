@@ -154,26 +154,35 @@ def get_user_favorites():
 def add_user_favorite():
     """Add a favorite verse"""
     user_id = request.args.get('user_id', type=int)
-    data = request.get_json()
+    data = request.get_json() or {}
+    
+    print(f"[FAVORITES POST] user_id={user_id}, data={data}")
     
     if not user_id:
         return jsonify({'error': 'User ID required'}), 400
     
+    if not data:
+        return jsonify({'error': 'Request body is empty'}), 400
+    
     if not all(k in data for k in ['book', 'chapter', 'verse']):
-        return jsonify({'error': 'book, chapter, and verse are required'}), 400
+        missing = [k for k in ['book', 'chapter', 'verse'] if k not in data]
+        print(f"[FAVORITES POST] Missing fields: {missing}")
+        return jsonify({'error': f'Missing fields: {missing}'}), 400
     
     success = add_favorite(
         user_id,
         data['book'],
         data['chapter'],
         data['verse'],
-        data.get('translation', 'KJV'),
+        data.get('translation', 'web'),
         data.get('verse_text')
     )
     
     if success:
+        print(f"[FAVORITES POST] Successfully added favorite")
         return jsonify({'message': 'Favorite added successfully'}), 201
     else:
+        print(f"[FAVORITES POST] Favorite already exists")
         return jsonify({'error': 'Verse is already favorited'}), 409
 
 @app.route('/api/favorites', methods=['DELETE'])
@@ -269,13 +278,20 @@ def get_verse_notes(book, chapter, verse):
 def add_user_note():
     """Add a note for a verse"""
     user_id = request.args.get('user_id', type=int)
-    data = request.get_json()
+    data = request.get_json() or {}
+    
+    print(f"[NOTES POST] user_id={user_id}, data={data}")
     
     if not user_id:
         return jsonify({'error': 'User ID required'}), 400
     
+    if not data:
+        return jsonify({'error': 'Request body is empty'}), 400
+    
     if not all(k in data for k in ['book', 'chapter', 'verse', 'note_text']):
-        return jsonify({'error': 'book, chapter, verse, and note_text are required'}), 400
+        missing = [k for k in ['book', 'chapter', 'verse', 'note_text'] if k not in data]
+        print(f"[NOTES POST] Missing fields: {missing}")
+        return jsonify({'error': f'Missing fields: {missing}'}), 400
     
     note_id = add_note(
         user_id,
@@ -285,6 +301,7 @@ def add_user_note():
         data['note_text']
     )
     
+    print(f"[NOTES POST] Successfully added note with ID: {note_id}")
     return jsonify({'id': note_id, 'message': 'Note added successfully'}), 201
 
 @app.route('/api/notes/<int:note_id>', methods=['PUT'])
@@ -326,13 +343,20 @@ def delete_user_note(note_id):
 def toggle_verse_of_day_like_api():
     """Toggle like status for verse of the day"""
     user_id = request.args.get('user_id', type=int)
-    data = request.get_json()
+    data = request.get_json() or {}
+    
+    print(f"[VERSE-OF-DAY LIKE POST] user_id={user_id}, data={data}")
     
     if not user_id:
         return jsonify({'error': 'User ID required'}), 400
     
+    if not data:
+        return jsonify({'error': 'Request body is empty'}), 400
+    
     if not all(k in data for k in ['book', 'chapter', 'verse']):
-        return jsonify({'error': 'book, chapter, and verse are required'}), 400
+        missing = [k for k in ['book', 'chapter', 'verse'] if k not in data]
+        print(f"[VERSE-OF-DAY LIKE POST] Missing fields: {missing}")
+        return jsonify({'error': f'Missing fields: {missing}'}), 400
     
     liked = db_toggle_verse_like(
         user_id,
@@ -342,6 +366,7 @@ def toggle_verse_of_day_like_api():
         data.get('translation', 'web')
     )
     
+    print(f"[VERSE-OF-DAY LIKE POST] Successfully toggled like, liked={liked}")
     return jsonify({'liked': liked}), 200
 
 @app.route('/api/verse-of-day/like', methods=['GET'])

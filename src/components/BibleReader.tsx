@@ -113,11 +113,17 @@ export function BibleReader(props: BibleReaderProps) {
           const res = await fetch(`/api/notes?user_id=${userId}`);
           if (res.ok) {
             const data = await res.json();
-            setNotes(data.notes || []);
+            const loadedNotes = data.notes || [];
+            setNotes(loadedNotes);
+            // Sync to localStorage for offline access
+            localStorage.setItem('bibleNotes', JSON.stringify(loadedNotes));
             return;
           }
-        } catch {/* ignore */}
+        } catch (err) {
+          console.error('Failed to load notes from server:', err);
+        }
       }
+      // Fallback to localStorage
       const savedNotes = localStorage.getItem('bibleNotes');
       if (savedNotes) setNotes(JSON.parse(savedNotes));
     };
@@ -129,11 +135,17 @@ export function BibleReader(props: BibleReaderProps) {
           const res = await fetch(`/api/favorites?user_id=${userId}`);
           if (res.ok) {
             const data = await res.json();
-            setFavorites(data.favorites || []);
+            const loadedFavorites = data.favorites || [];
+            setFavorites(loadedFavorites);
+            // Sync to localStorage for offline access
+            localStorage.setItem('bibleFavorites', JSON.stringify(loadedFavorites));
             return;
           }
-        } catch {/* ignore */}
+        } catch (err) {
+          console.error('Failed to load favorites from server:', err);
+        }
       }
+      // Fallback to localStorage
       const savedFavorites = localStorage.getItem('bibleFavorites');
       if (savedFavorites) setFavorites(JSON.parse(savedFavorites));
     };
@@ -218,50 +230,62 @@ export function BibleReader(props: BibleReaderProps) {
     const newNote: Note = { book, chapter, verse: selectedVerse, note: trimmed };
     const updatedNotes = notes.filter(n => !(n.book === book && n.chapter === chapter && n.verse === selectedVerse));
     updatedNotes.push(newNote);
+    
+    // Update state and localStorage immediately for instant UI feedback
     setNotes(updatedNotes);
     localStorage.setItem('bibleNotes', JSON.stringify(updatedNotes));
+    setNoteText('');
+    setSelectedVerse(null);
 
-    // Persist to backend database and capture the ID
+    // Persist to backend database if userId available
     if (userId) {
       try {
-        const res = await fetch('/api/notes', {
+        console.log('[BibleReader] Saving note to API:', { userId, book, chapter, verse: selectedVerse, note_text: trimmed });
+        const res = await fetch(`/api/notes?user_id=${userId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            user_id: userId,
             book,
             chapter,
             verse: selectedVerse,
             note_text: trimmed
           })
         });
+        console.log('[BibleReader] Save note response:', res.status, res.statusText);
         if (res.ok) {
           const data = await res.json();
           // Update the note with the ID from the backend
           newNote.id = data.id;
-          setNotes([...updatedNotes]);
+          setNotes(updatedNotes);
           localStorage.setItem('bibleNotes', JSON.stringify(updatedNotes));
+        } else {
+          const errorData = await res.json();
+          console.error('[BibleReader] Save note error:', errorData);
         }
-      } catch {/* ignore */}
+      } catch (err) {
+        console.error('[BibleReader] Failed to save note to server:', err);
+        // Note already saved to localStorage, so it persists
+      }
     }
-
-    setNoteText('');
-    setSelectedVerse(null);
   };
 
   const deleteNote = async (verse: number) => {
     const noteToDelete = notes.find(n => n.book === book && n.chapter === chapter && n.verse === verse);
     
+    // Update state and localStorage immediately for instant UI feedback
+    const updatedNotes = notes.filter(n => !(n.book === book && n.chapter === chapter && n.verse === verse));
+    setNotes(updatedNotes);
+    localStorage.setItem('bibleNotes', JSON.stringify(updatedNotes));
+
     // Delete from backend if note has ID and userId is available
     if (noteToDelete?.id && userId) {
       try {
         await fetch(`/api/notes/${noteToDelete.id}?user_id=${userId}`, { method: 'DELETE' });
-      } catch {/* ignore */}
+      } catch (err) {
+        console.error('Failed to delete note from server:', err);
+        // Note already removed from localStorage, so it persists
+      }
     }
-    
-    const updatedNotes = notes.filter(n => !(n.book === book && n.chapter === chapter && n.verse === verse));
-    setNotes(updatedNotes);
-    localStorage.setItem('bibleNotes', JSON.stringify(updatedNotes));
   };
 
   const getVerseNote = (verse: number): Note | undefined =>
@@ -272,27 +296,39 @@ export function BibleReader(props: BibleReaderProps) {
       f.book === book && f.chapter === chapter && f.verse === verse.verse && f.translation === (translation || 'web')
     );
     let updatedFavorites: FavoriteVerse[];
+    
     if (existingFavorite) {
+      // Remove favorite
       updatedFavorites = favorites.filter(f =>
         !(f.book === book && f.chapter === chapter && f.verse === verse.verse && f.translation === (translation || 'web'))
       );
+      
+      // Update state and localStorage immediately for instant UI feedback
+      setFavorites(updatedFavorites);
+      localStorage.setItem('bibleFavorites', JSON.stringify(updatedFavorites));
+
       // Call API to remove favorite if userId available
       if (userId) {
         try {
-          await fetch(`/api/favorites`, {
+          console.log('[BibleReader] Removing favorite from API:', { userId, book, chapter, verse: verse.verse, translation });
+          const response = await fetch(`/api/favorites?user_id=${userId}`, {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              user_id: userId,
               book,
               chapter,
               verse: verse.verse,
               translation: translation || 'web'
             })
           });
-        } catch {/* ignore */}
+          console.log('[BibleReader] Remove favorite response:', response.status, response.statusText);
+        } catch (err) {
+          console.error('[BibleReader] Failed to remove favorite from server:', err);
+          // Favorite already removed from localStorage, so it persists
+        }
       }
     } else {
+      // Add favorite
       const newFavorite: FavoriteVerse = {
         book,
         chapter,
@@ -302,14 +338,19 @@ export function BibleReader(props: BibleReaderProps) {
         dateAdded: new Date().toISOString()
       };
       updatedFavorites = [...favorites, newFavorite];
+      
+      // Update state and localStorage immediately for instant UI feedback
+      setFavorites(updatedFavorites);
+      localStorage.setItem('bibleFavorites', JSON.stringify(updatedFavorites));
+
       // Call API to add favorite if userId available
       if (userId) {
         try {
-          await fetch('/api/favorites', {
+          console.log('[BibleReader] Adding favorite to API:', { userId, book, chapter, verse: verse.verse, translation });
+          const response = await fetch(`/api/favorites?user_id=${userId}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              user_id: userId,
               book,
               chapter,
               verse: verse.verse,
@@ -317,11 +358,17 @@ export function BibleReader(props: BibleReaderProps) {
               translation: translation || 'web'
             })
           });
-        } catch {/* ignore */}
+          console.log('[BibleReader] Add favorite response:', response.status, response.statusText);
+          if (!response.ok) {
+            const errorData = await response.json();
+            console.error('[BibleReader] Add favorite error:', errorData);
+          }
+        } catch (err) {
+          console.error('[BibleReader] Failed to add favorite to server:', err);
+          // Favorite already added to localStorage, so it persists
+        }
       }
     }
-    setFavorites(updatedFavorites);
-    localStorage.setItem('bibleFavorites', JSON.stringify(updatedFavorites));
   };
 
   const isFavorite = (verse: BibleVerse): boolean =>

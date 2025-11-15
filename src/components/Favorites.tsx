@@ -34,13 +34,18 @@ export function Favorites({ userId, onNavigateToVerse }: FavoritesProps) {
           const res = await fetch(`/api/favorites?user_id=${userId}`);
           if (res.ok) {
             const data = await res.json();
-            setFavorites(data.favorites || []);
+            const favs = data.favorites || [];
+            setFavorites(favs);
+            // Sync to localStorage for offline access
+            localStorage.setItem('bibleFavorites', JSON.stringify(favs));
             return;
           }
-        } catch {/* ignore */}
+        } catch (err) {
+          console.error('Failed to load favorites from server:', err);
+        }
       }
 
-      // Fallback to localStorage
+      // Fallback to localStorage if no userId or API fails
       const saved = localStorage.getItem('bibleFavorites');
       if (saved) setFavorites(JSON.parse(saved));
     };
@@ -48,27 +53,33 @@ export function Favorites({ userId, onNavigateToVerse }: FavoritesProps) {
   }, [userId]);
 
   const removeFavorite = async (favorite: FavoriteVerse) => {
-    if (userId) {
-      try {
-        await fetch(`/api/favorites`, {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            user_id: userId,
-            book: favorite.book,
-            chapter: favorite.chapter,
-            verse: favorite.verse,
-            translation: favorite.translation
-          })
-        });
-      } catch {/* ignore */}
-    }
-    
+    // Update state immediately for instant UI feedback
     const updatedFavorites = favorites.filter((f: FavoriteVerse) => 
       !(f.book === favorite.book && f.chapter === favorite.chapter && f.verse === favorite.verse && (f.translation || 'web') === (favorite.translation || 'web'))
     );
     setFavorites(updatedFavorites);
     localStorage.setItem('bibleFavorites', JSON.stringify(updatedFavorites));
+
+    // Persist to backend if userId available
+    if (userId) {
+      try {
+        console.log('[Favorites] Removing favorite:', { userId, book: favorite.book, chapter: favorite.chapter, verse: favorite.verse });
+        const response = await fetch(`/api/favorites?user_id=${userId}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            book: favorite.book,
+            chapter: favorite.chapter,
+            verse: favorite.verse,
+            translation: favorite.translation || 'web'
+          })
+        });
+        console.log('[Favorites] Remove response:', response.status, response.statusText);
+      } catch (err) {
+        console.error('[Favorites] Failed to delete favorite from server:', err);
+        // Data still in localStorage for offline access
+      }
+    }
   };
 
   const filteredFavorites = favorites

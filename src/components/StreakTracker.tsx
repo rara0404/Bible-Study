@@ -37,9 +37,13 @@ export function StreakTracker({ userId }: StreakTrackerProps) {
           if (res.ok) {
             const data = await res.json();
             setStreakData(data);
+            // Sync to localStorage for offline access
+            localStorage.setItem('bibleStreakData', JSON.stringify(data));
             return;
           }
-        } catch {/* ignore */}
+        } catch (err) {
+          console.error('Failed to load streak data from server:', err);
+        }
       }
 
       // Fallback to localStorage
@@ -55,7 +59,7 @@ export function StreakTracker({ userId }: StreakTrackerProps) {
         // Reset streak if more than 1 day gap
         if (lastRead.toDateString() !== today.toDateString() && 
             lastRead.toDateString() !== yesterday.toDateString()) {
-          data.currentStreak = 0;
+          data.current_streak = 0;
         }
         
         setStreakData(data);
@@ -97,10 +101,13 @@ export function StreakTracker({ userId }: StreakTrackerProps) {
       if (res.ok) {
         const updatedStreak = await res.json();
         setStreakData(updatedStreak);
+        // Sync to localStorage for offline access
         localStorage.setItem('bibleStreakData', JSON.stringify(updatedStreak));
         return;
       }
-    } catch {/* ignore */}
+    } catch (err) {
+      console.error('Failed to update streak on server:', err);
+    }
 
     // Fallback to local update if backend fails
     setStreakData(prev => {
