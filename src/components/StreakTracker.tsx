@@ -6,60 +6,105 @@ import { useState, useEffect } from "react";
 import { markStreakToday } from "../services/readingProgress";
 
 interface StreakData {
-  currentStreak: number;
-  longestStreak: number;
-  lastReadDate: string;
-  totalDaysRead: number;
+  current_streak?: number;
+  currentStreak?: number;
+  longest_streak?: number;
+  longestStreak?: number;
+  last_read_date?: string;
+  lastReadDate?: string;
+  total_days_read?: number;
+  totalDaysRead?: number;
 }
 
-export function StreakTracker() {
+interface StreakTrackerProps {
+  userId?: number;
+}
+
+export function StreakTracker({ userId }: StreakTrackerProps) {
   const [streakData, setStreakData] = useState<StreakData>({
-    currentStreak: 0,
-    longestStreak: 0,
-    lastReadDate: '',
-    totalDaysRead: 0
+    current_streak: 0,
+    longest_streak: 0,
+    last_read_date: '',
+    total_days_read: 0
   });
 
   useEffect(() => {
-    const saved = localStorage.getItem('bibleStreakData');
-    if (saved) {
-      const data = JSON.parse(saved);
-      // Check if last read was yesterday or today
-      const lastRead = new Date(data.lastReadDate);
-      const today = new Date();
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-      
-      // Reset streak if more than 1 day gap
-      if (lastRead.toDateString() !== today.toDateString() && 
-          lastRead.toDateString() !== yesterday.toDateString()) {
-        data.currentStreak = 0;
+    const loadStreakData = async () => {
+      // Load from backend if userId available
+      if (userId) {
+        try {
+          const res = await fetch(`/api/streak?user_id=${userId}`);
+          if (res.ok) {
+            const data = await res.json();
+            setStreakData(data);
+            return;
+          }
+        } catch {/* ignore */}
       }
-      
-      setStreakData(data);
-    }
-  }, []);
+
+      // Fallback to localStorage
+      const saved = localStorage.getItem('bibleStreakData');
+      if (saved) {
+        const data = JSON.parse(saved);
+        // Check if last read was yesterday or today
+        const lastRead = new Date(data.lastReadDate || data.last_read_date || '');
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        
+        // Reset streak if more than 1 day gap
+        if (lastRead.toDateString() !== today.toDateString() && 
+            lastRead.toDateString() !== yesterday.toDateString()) {
+          data.currentStreak = 0;
+        }
+        
+        setStreakData(data);
+      }
+    };
+
+    loadStreakData();
+  }, [userId]);
 
   const markTodayAsRead = async () => {
     // Local update
     setStreakData(prev => {
       const today = new Date().toDateString();
-      if (prev.lastReadDate === today) return prev;
-      const newStreak = prev.currentStreak + 1;
+      const lastRead = prev.lastReadDate || prev.last_read_date || '';
+      if (lastRead === today) return prev;
+      const currentCount = (prev.currentStreak || prev.currentStreak === 0) ? prev.currentStreak : 0;
+      const longestCount = (prev.longestStreak || prev.longestStreak === 0) ? prev.longestStreak : 0;
+      const totalCount = (prev.totalDaysRead || prev.totalDaysRead === 0) ? prev.totalDaysRead : 0;
+      const newStreak = currentCount + 1;
       const newData = {
-        currentStreak: newStreak,
-        longestStreak: Math.max(prev.longestStreak, newStreak),
-        lastReadDate: today,
-        totalDaysRead: prev.totalDaysRead + 1
+        current_streak: newStreak,
+        longest_streak: Math.max(longestCount, newStreak),
+        last_read_date: today,
+        total_days_read: totalCount + 1
       };
       localStorage.setItem('bibleStreakData', JSON.stringify(newData));
       return newData;
     });
-    // Best-effort backend update
-    try { await markStreakToday(); } catch {/* ignore */}
+    
+    // Backend update if userId available
+    if (userId) {
+      try {
+        await fetch('/api/streak/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: userId })
+        });
+      } catch {/* ignore */}
+    } else {
+      // Best-effort fallback
+      try { await markStreakToday(); } catch {/* ignore */}
+    }
   };
 
-  const isReadToday = streakData.lastReadDate === new Date().toDateString();
+  const getLastReadDate = (): string => {
+    return streakData.lastReadDate || streakData.last_read_date || '';
+  };
+
+  const isReadToday = getLastReadDate() === new Date().toDateString();
 
   return (
     <Card className="bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950 dark:to-red-950 border-2 border-orange-200 dark:border-orange-800">
@@ -72,10 +117,10 @@ export function StreakTracker() {
       <CardContent className="space-y-6">
         <div className="text-center">
           <div className="text-4xl font-bold text-orange-600 dark:text-orange-400 mb-2">
-            {streakData.currentStreak}
+            {streakData.current_streak || streakData.currentStreak || 0}
           </div>
           <p className="text-gray-600 dark:text-gray-400">
-            {streakData.currentStreak === 1 ? 'Day' : 'Days'} in a row
+            {(streakData.current_streak || streakData.currentStreak || 0) === 1 ? 'Day' : 'Days'} in a row
           </p>
         </div>
         
@@ -85,7 +130,7 @@ export function StreakTracker() {
               <Star className="w-4 h-4" />
               <span className="text-sm">Best</span>
             </div>
-            <div className="text-xl font-semibold">{streakData.longestStreak}</div>
+            <div className="text-xl font-semibold">{streakData.longest_streak || streakData.longestStreak || 0}</div>
           </div>
           
           <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg">
@@ -93,7 +138,7 @@ export function StreakTracker() {
               <Calendar className="w-4 h-4" />
               <span className="text-sm">Total</span>
             </div>
-            <div className="text-xl font-semibold">{streakData.totalDaysRead}</div>
+            <div className="text-xl font-semibold">{streakData.total_days_read || streakData.totalDaysRead || 0}</div>
           </div>
         </div>
 

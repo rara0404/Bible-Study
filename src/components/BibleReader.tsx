@@ -24,6 +24,7 @@ interface BibleReaderProps {
   book: string;
   chapter: number;
   translation?: string;
+  userId?: number;
   onNavigate: (book: string, chapter: number) => void;
   onTranslationChange?: (value: string) => void;
 }
@@ -86,7 +87,7 @@ function groupVersesIntoParagraphs(verses: BibleVerse[], maxLen = 600): BibleVer
 }
 
 export function BibleReader(props: BibleReaderProps) {
-  const { book, chapter, translation } = props;
+  const { book, chapter, translation, userId } = props;
   const topRef = useRef<HTMLDivElement | null>(null);
   const [verses, setVerses] = useState<BibleVerse[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -98,16 +99,45 @@ export function BibleReader(props: BibleReaderProps) {
   const [error, setError] = useState<string | null>(null);
   const [hasNext, setHasNext] = useState<boolean>(true);
 
-  const userId: string | undefined = undefined;
-
   useEffect(() => {
-    const savedNotes = localStorage.getItem('bibleNotes');
-    if (savedNotes) setNotes(JSON.parse(savedNotes));
-    const savedFavorites = localStorage.getItem('bibleFavorites');
-    if (savedFavorites) setFavorites(JSON.parse(savedFavorites));
-    const savedFontSize = localStorage.getItem('bibleFontSize');
-    if (savedFontSize) setFontSize(parseInt(savedFontSize));
-  }, []);
+    const loadData = async () => {
+      const savedFontSize = localStorage.getItem('bibleFontSize');
+      if (savedFontSize) setFontSize(parseInt(savedFontSize));
+
+      // Load notes from backend if userId available, otherwise fallback to localStorage
+      if (userId) {
+        try {
+          const res = await fetch(`/api/notes?user_id=${userId}`);
+          if (res.ok) {
+            const data = await res.json();
+            setNotes(data.notes || []);
+            return;
+          }
+        } catch {/* ignore */}
+      }
+      const savedNotes = localStorage.getItem('bibleNotes');
+      if (savedNotes) setNotes(JSON.parse(savedNotes));
+    };
+
+    const loadFavorites = async () => {
+      // Load favorites from backend if userId available, otherwise fallback to localStorage
+      if (userId) {
+        try {
+          const res = await fetch(`/api/favorites?user_id=${userId}`);
+          if (res.ok) {
+            const data = await res.json();
+            setFavorites(data.favorites || []);
+            return;
+          }
+        } catch {/* ignore */}
+      }
+      const savedFavorites = localStorage.getItem('bibleFavorites');
+      if (savedFavorites) setFavorites(JSON.parse(savedFavorites));
+    };
+
+    loadData();
+    loadFavorites();
+  }, [userId]);
 
   useEffect(() => {
     const fetchChapterData = async () => {
@@ -204,7 +234,7 @@ export function BibleReader(props: BibleReaderProps) {
   const getVerseNote = (verse: number): Note | undefined =>
     notes.find(n => n.book === book && n.chapter === chapter && n.verse === verse);
 
-  const toggleFavorite = (verse: BibleVerse) => {
+  const toggleFavorite = async (verse: BibleVerse) => {
     const existingFavorite = favorites.find(f =>
       f.book === book && f.chapter === chapter && f.verse === verse.verse && f.translation === (translation || 'web')
     );
@@ -213,6 +243,19 @@ export function BibleReader(props: BibleReaderProps) {
       updatedFavorites = favorites.filter(f =>
         !(f.book === book && f.chapter === chapter && f.verse === verse.verse && f.translation === (translation || 'web'))
       );
+      // Call API to remove favorite if userId available
+      if (userId) {
+        try {
+          const params = new URLSearchParams({
+            user_id: userId.toString(),
+            book,
+            chapter: chapter.toString(),
+            verse: verse.verse.toString(),
+            translation: translation || 'web'
+          });
+          await fetch(`/api/favorites?${params.toString()}`, { method: 'DELETE' });
+        } catch {/* ignore */}
+      }
     } else {
       const newFavorite: FavoriteVerse = {
         book,
@@ -221,9 +264,25 @@ export function BibleReader(props: BibleReaderProps) {
         text: verse.text,
         translation: translation || 'web',
         dateAdded: new Date().toISOString()
-        // DO NOT add isVerseOfTheDay here!
       };
       updatedFavorites = [...favorites, newFavorite];
+      // Call API to add favorite if userId available
+      if (userId) {
+        try {
+          await fetch('/api/favorites', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              user_id: userId,
+              book,
+              chapter,
+              verse: verse.verse,
+              verse_text: verse.text,
+              translation: translation || 'web'
+            })
+          });
+        } catch {/* ignore */}
+      }
     }
     setFavorites(updatedFavorites);
     localStorage.setItem('bibleFavorites', JSON.stringify(updatedFavorites));

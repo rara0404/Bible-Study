@@ -6,7 +6,8 @@ from database import (
     init_db, get_user, get_user_by_id, create_user,
     get_streak, update_streak,
     add_favorite, remove_favorite, get_favorites, is_favorite,
-    add_note, update_note, delete_note, get_notes_for_verse, get_all_notes
+    add_note, update_note, delete_note, get_notes_for_verse, get_all_notes,
+    get_note_by_id, verify_user_owns_note
 )
 
 app = Flask(__name__)
@@ -284,10 +285,18 @@ def add_user_note():
 @app.route('/api/notes/<int:note_id>', methods=['PUT'])
 def update_user_note(note_id):
     """Update a note"""
+    user_id = request.args.get('user_id', type=int)
     data = request.get_json()
+    
+    if not user_id:
+        return jsonify({'error': 'User ID required'}), 400
     
     if 'note_text' not in data:
         return jsonify({'error': 'note_text is required'}), 400
+    
+    # Verify user owns this note
+    if not verify_user_owns_note(user_id, note_id):
+        return jsonify({'error': 'Unauthorized - you do not own this note'}), 403
     
     update_note(note_id, data['note_text'])
     
@@ -296,6 +305,15 @@ def update_user_note(note_id):
 @app.route('/api/notes/<int:note_id>', methods=['DELETE'])
 def delete_user_note(note_id):
     """Delete a note"""
+    user_id = request.args.get('user_id', type=int)
+    
+    if not user_id:
+        return jsonify({'error': 'User ID required'}), 400
+    
+    # Verify user owns this note
+    if not verify_user_owns_note(user_id, note_id):
+        return jsonify({'error': 'Unauthorized - you do not own this note'}), 403
+    
     delete_note(note_id)
     return jsonify({'message': 'Note deleted successfully'}), 200
 

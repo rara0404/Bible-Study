@@ -17,40 +17,49 @@ interface FavoriteVerse {
 }
 
 interface FavoritesProps {
+  userId?: number;
   onNavigateToVerse?: (book: string, chapter: number, verse: number) => void;
 }
 
-export function Favorites({ onNavigateToVerse }: FavoritesProps) {
+export function Favorites({ userId, onNavigateToVerse }: FavoritesProps) {
   const [favorites, setFavorites] = useState<FavoriteVerse[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     const load = async () => {
-      try {
-        const res = await fetch('/api/favorite-verses?user_id=1');
-        if (res.ok) {
-          const data = await res.json();
-          setFavorites(data);
-          return;
-        }
-      } catch {/* ignore */}
+      // Load from backend if userId available
+      if (userId) {
+        try {
+          const res = await fetch(`/api/favorites?user_id=${userId}`);
+          if (res.ok) {
+            const data = await res.json();
+            setFavorites(data.favorites || []);
+            return;
+          }
+        } catch {/* ignore */}
+      }
+
+      // Fallback to localStorage
       const saved = localStorage.getItem('bibleFavorites');
       if (saved) setFavorites(JSON.parse(saved));
     };
     load();
-  }, []);
+  }, [userId]);
 
   const removeFavorite = async (favorite: FavoriteVerse) => {
-    const params = new URLSearchParams({
-      user_id: '1',
-      book: favorite.book,
-      chapter: favorite.chapter.toString(),
-      verse: favorite.verse.toString(),
-      translation: favorite.translation
-    });
-    try {
-      await fetch(`/api/favorite-verses?${params.toString()}`, { method: 'DELETE' });
-    } catch {/* ignore */}
+    if (userId) {
+      const params = new URLSearchParams({
+        user_id: userId.toString(),
+        book: favorite.book,
+        chapter: favorite.chapter.toString(),
+        verse: favorite.verse.toString(),
+        translation: favorite.translation
+      });
+      try {
+        await fetch(`/api/favorites?${params.toString()}`, { method: 'DELETE' });
+      } catch {/* ignore */}
+    }
+    
     const updatedFavorites = favorites.filter((f: FavoriteVerse) => 
       !(f.book === favorite.book && f.chapter === favorite.chapter && f.verse === favorite.verse && f.translation === favorite.translation)
     );

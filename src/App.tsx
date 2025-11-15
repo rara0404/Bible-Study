@@ -236,7 +236,7 @@ export default function App() {
 
               {/* Right Column */}
               <div className="space-y-6">
-                <StreakTracker />
+                <StreakTracker userId={userId ?? undefined} />
               </div>
             </div>
           </div>
@@ -257,7 +257,7 @@ export default function App() {
               book={currentBook}
               chapter={currentChapter}
               translation={selectedTranslation}
-          
+              userId={userId ?? undefined}
               onNavigate={(book, chapter) => {
                 // Special signal: chapter 0 means "go to this book's chapters list"
                 if (chapter === 0) {
@@ -276,6 +276,7 @@ export default function App() {
 
         {viewMode === 'favorites' && (
           <Favorites 
+            userId={userId ?? undefined}
             onNavigateToVerse={handleNavigateToVerse}
           />
         )}

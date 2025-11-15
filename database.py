@@ -248,6 +248,20 @@ def delete_note(note_id: int):
     conn.commit()
     conn.close()
 
+def get_note_by_id(note_id: int):
+    """Get note by ID with user verification."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM notes WHERE id = ?', (note_id,))
+    note = cursor.fetchone()
+    conn.close()
+    return note
+
+def verify_user_owns_note(user_id: int, note_id: int) -> bool:
+    """Verify that a user owns a specific note."""
+    note = get_note_by_id(note_id)
+    return note is not None and note['user_id'] == user_id
+
 def get_notes_for_verse(user_id: int, book: str, chapter: int, verse: int):
     """Get all notes for a specific verse."""
     conn = get_db_connection()
