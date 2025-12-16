@@ -7,6 +7,7 @@ Features
 -Complete Bible Reading: Browse and read through all books of the Bible
 -Daily Verse: Get inspired with a new verse each day
 -Reading Streaks: Track your daily reading habits and maintain streaks
+-Save Notes: You can add and save notes to your favorite verses.
 -Favorites: Save and organize your favorite verses
 -Multiple Translations: Support for different Bible translations
 -Responsive Design: Works seamlessly on desktop and mobile devices
